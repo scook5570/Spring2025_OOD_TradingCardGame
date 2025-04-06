@@ -1,0 +1,59 @@
+### IntelliJ IDEA ###
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### macOS ###
+.DS_Store
+
+### Additional Files to Ignore ###
+# Ignore compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# Ignore build directories
+/target/
+bin/
+out/
+
+# Ignore dependency manager directories
+/.mvn/
+.gradle/
+build/
+
+# Ignore IDE project files (IntelliJ, Eclipse, etc.)
+.idea/
+*.iml
+*.iws
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.swp
+*.swo
+*.tmp

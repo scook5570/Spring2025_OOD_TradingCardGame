@@ -1,3 +1,5 @@
+package shared;
+
 import java.io.File;
 
 class Card {
