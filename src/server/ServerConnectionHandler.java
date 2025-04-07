@@ -25,8 +25,7 @@ public class ServerConnectionHandler {
     }
 
     public boolean handleLogin(UserCredRequest userCredRequest) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleLogin'");
+        return true;
     }
 
     public void handleRegistration(UserCredRequest userCredRequest) {
@@ -41,6 +40,9 @@ public class ServerConnectionHandler {
 
     public void addClient(String username, ClientHandler clientHandler) {
         clients.put(username, clientHandler);
+        UserCredResponse response = new UserCredResponse(true);
+        clientHandler.sendMessage(response);
+        System.out.println("Client " + username + " added to the server.");
     }
 
     public void removeClient(String username) {

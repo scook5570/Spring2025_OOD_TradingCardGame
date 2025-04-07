@@ -81,6 +81,8 @@ public class MessageSocket extends Socket{
        switch(message.getType()) {
            case "Login", "Register":
                 return new UserCredRequest(obj);
+            case "Status":
+                return new UserCredResponse(obj);
            default:
                throw new RuntimeException("Message does not fit known type, got type: " + message.getType());
        }

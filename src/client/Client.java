@@ -5,6 +5,7 @@ import java.net.Socket;
 import shared.MessageSocket;
 import shared.messages.Message;
 import shared.messages.UserCredRequest;
+import shared.messages.UserCredResponse;
 
 public class Client {
     public static void main(String[] args) {
@@ -25,6 +26,19 @@ public class Client {
             System.out.println("UserCredRequest sent");
 
             Message response = messageSocket.getMessage();
+
+            System.out.println("Received response: " + response.toJSONType().toString());
+
+            if (!(response instanceof UserCredResponse)) {
+                System.err.println("Error: Expected UserCredResponse, but got " + response.getType());
+            } else {
+                UserCredResponse userCredResponse = (UserCredResponse) response;
+                if (userCredResponse.isSuccess()) {
+                    System.out.println("Login successful!");
+                } else {
+                    System.out.println("Login failed...");
+                }
+            }
 
             messageSocket.close();
             socket.close();
