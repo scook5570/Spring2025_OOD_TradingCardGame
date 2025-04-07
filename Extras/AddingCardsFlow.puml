@@ -1,0 +1,18 @@
+@startuml
+title Flowchart for the logic behind adding cards to a player's collection
+
+start
+:Player opens a pack of cards;
+:Display pack opening animation;
+:Generate random cards;
+
+:Display cards to player;
+
+:Check if collection.json exists;
+if (collection.json exists?) then (yes)
+else (no)
+    :Create new collection.json;
+endif
+:Add new cards to collection.json;
+
+@enduml

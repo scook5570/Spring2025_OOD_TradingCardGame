@@ -1,0 +1,20 @@
+@startuml
+title Flowchart for Trading Card Game Main Menu Process
+
+start
+:Display main menu;
+if (Player selects "Open a pack"?) then (yes)
+    :Display pack opening animation;
+    :Add cards to player's collection;
+else (no)
+endif
+
+if (Player selects "View gallery"?) then (yes)
+    :Display card gallery;
+else (no)
+endif
+
+if (Player selects "Trade cards"?) then (yes)
+    :Display trading interface;
+else (no)
+endif

@@ -1,0 +1,6 @@
+@startuml
+title Flowchart for Trading Card Game Trading Request Process
+
+start
+:Display trading interface;
+
