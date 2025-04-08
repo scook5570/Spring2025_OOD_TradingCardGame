@@ -3,6 +3,9 @@ package server;
 import java.io.IOException;
 import java.net.Socket;
 
+import org.bouncycastle.crypto.util.Pack;
+
+import merrimackutil.json.types.JSONArray;
 import shared.MessageSocket;
 import shared.messages.*;
 
@@ -62,8 +65,10 @@ public class ClientHandler implements Runnable {
         } else if (recvMsg instanceof PackRequest) {
             PackRequest packRequest = (PackRequest) recvMsg;
             switch (recvMsg.getType()) {
-                case "Pack":
-                    server.handlePackRequest(packRequest);
+                case "PackRequest":
+                    JSONArray cards = server.handlePackRequest(packRequest);
+                    PackResponse packResponse = new PackResponse(cards);
+                    sendMessage(packResponse);
                     break;
                 default:
                     System.err.println("Unknown message type: " + recvMsg.getType());

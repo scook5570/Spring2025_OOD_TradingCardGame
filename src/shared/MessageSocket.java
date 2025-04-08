@@ -83,6 +83,10 @@ public class MessageSocket extends Socket{
                 return new UserCredRequest(obj);
             case "Status":
                 return new UserCredResponse(obj);
+            case "PackRequest":
+                return new PackRequest(obj);
+            case "PackResponse":
+                return new PackResponse(obj);
            default:
                throw new RuntimeException("Message does not fit known type, got type: " + message.getType());
        }

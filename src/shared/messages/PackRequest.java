@@ -8,9 +8,11 @@ import merrimackutil.json.types.JSONType;
 public class PackRequest extends Message{
     private int cardCount;
     private String packName;
+    private String username;
 
-    public PackRequest(String packName, int cardCount) {
+    public PackRequest(String username, String packName, int cardCount) {
         super("PackRequest");
+        this.username = username;
         this.packName = packName;
         this.cardCount = cardCount;
     }
@@ -20,6 +22,10 @@ public class PackRequest extends Message{
         if (!super.type.equals("PackRequest")) {
             throw new IllegalArgumentException("Bad type: " + super.type);
         }
+    }
+
+    public String getUsername() {
+        return username;
     }
 
     public String getPackName() {
@@ -34,6 +40,7 @@ public class PackRequest extends Message{
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         super.deserialize(jsonType);
         JSONObject jsonObject = (JSONObject) jsonType;
+        username = jsonObject.getString("username");
         packName = jsonObject.getString("packName");
         cardCount = jsonObject.getInt("cardCount");
     }
@@ -41,6 +48,7 @@ public class PackRequest extends Message{
     @Override
     public JSONObject toJSONType() {
         JSONObject jsonObject = super.toJSONType();
+        jsonObject.put("username", username);
         jsonObject.put("packName", packName);
         jsonObject.put("cardCount", cardCount);
         return jsonObject;

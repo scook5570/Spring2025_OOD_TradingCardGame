@@ -2,13 +2,14 @@ package shared.messages;
 
 import java.io.InvalidObjectException;
 
+import merrimackutil.json.types.JSONArray;
 import merrimackutil.json.types.JSONObject;
 import merrimackutil.json.types.JSONType;
 
 public class PackResponse extends Message {
-    private String[] cards;
+    private JSONArray cards;
 
-    public PackResponse(String[] cards) {
+    public PackResponse(JSONArray cards) {
         super("PackResponse");
         this.cards = cards;
     }
@@ -20,7 +21,7 @@ public class PackResponse extends Message {
         }
     }
 
-    public String[] getCards() {
+    public JSONArray getCards() {
         return cards;
     }
 
@@ -28,9 +29,7 @@ public class PackResponse extends Message {
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         super.deserialize(jsonType);
         JSONObject jsonObject = (JSONObject) jsonType;
-        cards = jsonObject.getArray("cards").stream()
-                .map(Object::toString)
-                .toArray(String[]::new); // yeah this is scuffed
+        cards = jsonObject.getArray("cards");
     }
 
     @Override
