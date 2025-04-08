@@ -6,6 +6,8 @@ import java.util.Scanner;
 import merrimackutil.json.types.JSONArray;
 import merrimackutil.json.types.JSONObject;
 import shared.MessageSocket;
+import shared.messages.CollectionRequest;
+import shared.messages.CollectionResponse;
 import shared.messages.Message;
 import shared.messages.PackRequest;
 import shared.messages.PackResponse;
@@ -82,7 +84,8 @@ public class Client {
             while (running) {
                 System.out.println("Home Page:");
                 System.out.println("1. Open a pack");
-                System.out.println("2. Log out");
+                System.out.println("2. Get collection");
+                System.out.println("3. Log out");
                 int homeChoice = scanner.nextInt();
                 scanner.nextLine(); // Consume the newline character
 
@@ -111,6 +114,28 @@ public class Client {
 
                     messageSocket.close();
                 } else if (homeChoice == 2) {
+                    System.out.println("Retrieving collection...");
+                    MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
+                    System.out.println("Connected to server at " + serverAddress + ":" + port);
+                    CollectionRequest collectionRequest = new CollectionRequest(username);
+                    messageSocket.sendMessage(collectionRequest);
+
+                    Message response = messageSocket.getMessage();
+                    if (response instanceof CollectionResponse) {
+                        CollectionResponse collectionResponse = (CollectionResponse) response;
+                        JSONArray cards = collectionResponse.getCollection();
+                        System.out.println("Your collection contains the following cards:");
+                        for (int i = 0; i < cards.size(); i++) {
+                            JSONObject card = (JSONObject) cards.get(i);
+                            System.out.println("Card ID: " + card.getString("cardID"));
+                            System.out.println("Name: " + card.getString("name"));
+                            System.out.println("Rarity: " + card.getInt("rarity"));
+                            System.out.println("Image Link: " + card.getString("imageLink"));
+                        }
+                    } else {
+                        System.err.println("Unexpected response type: " + response.getType());
+                    }
+                } else if (homeChoice == 3) {
                     System.out.println("Logging out...");
                     running = false;
                 } else {

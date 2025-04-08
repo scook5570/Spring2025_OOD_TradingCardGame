@@ -85,6 +85,22 @@ public class UserCardsDatabase implements JSONSerializable{
         save(); // Save the credentials to the file
     }
 
+    /**
+     * Get the cards of a user
+     * @param username
+     * @return JSONArray of cardIDs
+     * @throws InvalidObjectException
+     */
+    public JSONArray getUserCards(String username) throws InvalidObjectException {
+        if (cards == null) {
+            return new JSONArray();
+        }
+        if (!cards.containsKey(username)) {
+            throw new InvalidObjectException("User does not exist in the database");
+        }
+        return cards.get(username);
+    }
+
     @Override
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         if (jsonType instanceof JSONArray) {

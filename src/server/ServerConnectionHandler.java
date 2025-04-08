@@ -123,4 +123,14 @@ public class ServerConnectionHandler {
     public void removeClient(String username) {
         clients.remove(username);
     }
+
+    public JSONArray handleCollectionRequest(CollectionRequest collectionRequest) {
+        JSONArray collection = new JSONArray();
+        try {
+            collection = userCardsDatabase.getUserCards(collectionRequest.getUsername());
+        } catch (InvalidObjectException e) {
+            System.err.println("Error retrieving user cards: " + e.getMessage());
+        }
+        return collection;
+    }
 }

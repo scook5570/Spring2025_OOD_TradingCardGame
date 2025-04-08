@@ -73,6 +73,19 @@ public class ClientHandler implements Runnable {
                 default:
                     System.err.println("Unknown message type: " + recvMsg.getType());
             }
+        } else if (recvMsg instanceof CollectionRequest) {
+            CollectionRequest collectionRequest = (CollectionRequest) recvMsg;
+            switch (recvMsg.getType()) {
+                case "CollectionRequest":
+                    JSONArray collection = server.handleCollectionRequest(collectionRequest);
+                    CollectionResponse collectionResponse = new CollectionResponse(collection);
+                    sendMessage(collectionResponse);
+                    break;
+                default:
+                    System.err.println("Unknown message type: " + recvMsg.getType());
+            }
+        } else if (recvMsg instanceof CollectionResponse) {
+            // Handle CollectionResponse if needed
         } else {
             System.err.println("Unknown message type: " + recvMsg.getType());
         }
