@@ -38,13 +38,23 @@ public class ClientHandler implements Runnable {
                     if (server.handleLogin(userCredRequest)) {
                         this.username = userCredRequest.getUsername();
                         server.addClient(this.username, this);
+                        UserCredResponse response = new UserCredResponse(true);
+                        sendMessage(response);
                     } else {
                         UserCredResponse response = new UserCredResponse(false);
                         sendMessage(response);
                     }
                     break;
                 case "Register":
-                    server.handleRegistration(userCredRequest);
+                    if(server.handleRegistration(userCredRequest)) {
+                        this.username = userCredRequest.getUsername();
+                        server.addClient(this.username, this);
+                        UserCredResponse response = new UserCredResponse(true);
+                        sendMessage(response);
+                    } else {
+                        UserCredResponse response = new UserCredResponse(false);
+                        sendMessage(response);
+                    }
                     break;
                 default:
                     System.err.println("Unknown message type: " + recvMsg.getType());

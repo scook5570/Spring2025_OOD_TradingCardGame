@@ -57,3 +57,6 @@ build/
 *.swp
 *.swo
 *.tmp
+
+# Ignore extras
+/lib

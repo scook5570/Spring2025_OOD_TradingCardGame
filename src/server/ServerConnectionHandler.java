@@ -38,8 +38,13 @@ public class ServerConnectionHandler {
         return false;
     }
 
-    public void handleRegistration(UserCredRequest userCredRequest) {
-        
+    public boolean handleRegistration(UserCredRequest userCredRequest) {
+        if (userCreds.checkUser(userCredRequest.getUsername())) {
+            return false;
+        }
+
+        userCreds.addUser(userCredRequest.getUsername(), userCredRequest.getPassword());
+        return true;
     }
 
     public void handlePackRequest(PackRequest packRequest) {
@@ -49,8 +54,6 @@ public class ServerConnectionHandler {
 
     public void addClient(String username, ClientHandler clientHandler) {
         clients.put(username, clientHandler);
-        UserCredResponse response = new UserCredResponse(true);
-        clientHandler.sendMessage(response);
     }
 
     public void removeClient(String username) {
