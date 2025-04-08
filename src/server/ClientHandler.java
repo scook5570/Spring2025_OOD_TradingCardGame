@@ -38,6 +38,9 @@ public class ClientHandler implements Runnable {
                     if (server.handleLogin(userCredRequest)) {
                         this.username = userCredRequest.getUsername();
                         server.addClient(this.username, this);
+                    } else {
+                        UserCredResponse response = new UserCredResponse(false);
+                        sendMessage(response);
                     }
                     break;
                 case "Register":

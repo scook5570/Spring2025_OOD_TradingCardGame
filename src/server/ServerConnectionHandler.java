@@ -10,8 +10,10 @@ import shared.messages.*;
 public class ServerConnectionHandler {
     private ServerSocket serverSocket;
     private ConcurrentHashMap<String, ClientHandler> clients = new ConcurrentHashMap<>();
+    private UserCredentials userCreds;
 
-    public void start(int port) {
+    public void start(int port, UserCredentials userCreds) {
+        this.userCreds = userCreds;
         try {
             serverSocket = new ServerSocket(port);
             while (true) {
@@ -25,12 +27,19 @@ public class ServerConnectionHandler {
     }
 
     public boolean handleLogin(UserCredRequest userCredRequest) {
-        return true;
+        if (!(userCreds.checkUser(userCredRequest.getUsername()))) {
+            return false;
+        }
+
+        if (userCreds.checkPassword(userCredRequest.getUsername(), userCredRequest.getPassword())) {
+            return true;        
+        }
+
+        return false;
     }
 
     public void handleRegistration(UserCredRequest userCredRequest) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleRegistration'");
+        
     }
 
     public void handlePackRequest(PackRequest packRequest) {
@@ -42,7 +51,6 @@ public class ServerConnectionHandler {
         clients.put(username, clientHandler);
         UserCredResponse response = new UserCredResponse(true);
         clientHandler.sendMessage(response);
-        System.out.println("Client " + username + " added to the server.");
     }
 
     public void removeClient(String username) {
