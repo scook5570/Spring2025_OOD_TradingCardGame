@@ -49,6 +49,7 @@ public class UserCredentials implements JSONSerializable {
             credentials = new HashMap<>();
         }
         credentials.put(username, password);
+        save(); // Save the credentials to the file
     }
 
     /**
@@ -61,6 +62,7 @@ public class UserCredentials implements JSONSerializable {
             return;
         }
         credentials.remove(username);
+        save(); // Save the credentials to the file
     }
 
     /**
@@ -118,5 +120,16 @@ public class UserCredentials implements JSONSerializable {
         }
 
         return jsonArray;
+    }
+
+    /**
+     * Writes the credentials to the file
+     */
+    public void save() {
+        try {
+            JsonIO.writeFormattedObject(this, file);
+        } catch (Exception e) {
+            System.err.println("Error writing users file: " + e.getMessage());
+        }
     }
 }

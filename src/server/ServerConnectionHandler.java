@@ -1,6 +1,7 @@
 package server;
 
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,9 +12,12 @@ public class ServerConnectionHandler {
     private ServerSocket serverSocket;
     private ConcurrentHashMap<String, ClientHandler> clients = new ConcurrentHashMap<>();
     private UserCredentials userCreds;
+    private UserCardsDatabase userCardsDatabase;
 
-    public void start(int port, UserCredentials userCreds) {
+    public void start(int port, UserCredentials userCreds, UserCardsDatabase userCardsDatabase) {
         this.userCreds = userCreds;
+        this.userCardsDatabase = userCardsDatabase;
+
         try {
             serverSocket = new ServerSocket(port);
             while (true) {
@@ -44,6 +48,12 @@ public class ServerConnectionHandler {
         }
 
         userCreds.addUser(userCredRequest.getUsername(), userCredRequest.getPassword());
+        try {
+            userCardsDatabase.addUser(userCredRequest.getUsername());
+        } catch (InvalidObjectException e) {
+           System.err.println("Error adding user to database: " + e.getMessage());
+           return false;
+        }
         return true;
     }
 
