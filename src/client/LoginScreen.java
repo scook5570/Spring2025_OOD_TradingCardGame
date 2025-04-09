@@ -1,25 +1,29 @@
 package client;
 
+import javax.smartcardio.Card;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class LoginScreen extends JFrame {
-    private JTextField usernameField;
-    private JPasswordField passwordField;
-    private JButton loginButton;
-    private JButton registerButton;
-    private JLabel usernameLabel;
-    private JLabel passwordLabel;
-    private JLabel messageLabel;
+    private final JTextField usernameField;
+    private final JPasswordField passwordField;
+    private final JButton loginButton;
+    private final JButton registerButton;
+    private final JLabel usernameLabel;
+    private final JLabel passwordLabel;
+    private final JLabel messageLabel;
+    private final JPanel loginPanel;
+    private final JPanel buttonPanel;
 
     public LoginScreen() {
         setTitle("Login");
-        setSize(300, 200);
+        setSize(400, 250);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setAlwaysOnTop(true);
+        setResizable(false);
 
         // Labels
         usernameLabel = new JLabel("Username:");
@@ -35,42 +39,58 @@ public class LoginScreen extends JFrame {
         registerButton = new JButton("Register");
 
         // Create a layout manager
+
+        // Clear existing layout and constraints
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+
+        loginPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints loginGBC = new GridBagConstraints();
 
         // Set insets for spacing
-        gbc.insets = new Insets(5, 5, 5, 5);
+        loginGBC.insets = new Insets(5, 5, 5, 5);
 
-        gbc.gridx = 0;  // Column 0
-        gbc.gridy = 0;  // Row 0
-        add(usernameLabel, gbc);
+        loginGBC.gridx = 0;  // Column 0
+        loginGBC.gridy = 0;  // Row 0
+        loginPanel.add(usernameLabel, loginGBC);
 
-        gbc.gridx = 1;  // Column 1
-        gbc.gridy = 0;  // Row 0
-        add(usernameField, gbc);
+        loginGBC.gridx = 1;  // Column 1
+        loginGBC.gridy = 0;  // Row 0
+        loginPanel.add(usernameField, loginGBC);
 
-        gbc.gridx = 0;  // Column 0
-        gbc.gridy = 1;  // Row 1
-        add(passwordLabel, gbc);
+        loginGBC.gridx = 0;  // Column 0
+        loginGBC.gridy = 1;  // Row 1
+        loginPanel.add(passwordLabel, loginGBC);
 
-        gbc.gridx = 1;  // Column 1
-        gbc.gridy = 1;  // Row 1
-        add(passwordField, gbc);
+        loginGBC.gridx = 1;  // Column 1
+        loginGBC.gridy = 1;  // Row 1
+        loginPanel.add(passwordField, loginGBC);
 
-        gbc.gridx = 1;  // Column 1
-        gbc.gridy = 2;  // Row 2
-        gbc.gridwidth = 1;  // Span one column
-        add(loginButton, gbc);
+        loginGBC.gridx = 0;  // Column 0
+        loginGBC.gridy = 4;  // Row 4
+        loginGBC.gridwidth = 2;  // Span two columns
+        loginPanel.add(messageLabel, loginGBC);
 
-        gbc.gridx = 1;  // Column 1
-        gbc.gridy = 3;  // Row 3
-        gbc.gridwidth = 1;  // Span one column
-        add(registerButton, gbc);
+        buttonPanel = new JPanel(new GridLayout(1, 2));
+        buttonPanel.add(loginButton);
+        buttonPanel.add(registerButton);
 
-        gbc.gridx = 0;  // Column 0
-        gbc.gridy = 4;  // Row 4
-        gbc.gridwidth = 2;  // Span two columns
-        add(messageLabel, gbc);
+        add(loginPanel);
+
+        // Add loginPanel at (0, 0)
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        add(loginPanel, gbc);
+
+        // Add buttonPanel just below at (0, 1)
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+        add(buttonPanel, gbc);
+
+
 
         // Button action listener for login
         loginButton.addActionListener(new ActionListener() {
