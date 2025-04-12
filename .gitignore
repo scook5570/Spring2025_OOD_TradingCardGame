@@ -60,3 +60,4 @@ build/
 
 # Ignore extras
 /lib
+*/server/databases

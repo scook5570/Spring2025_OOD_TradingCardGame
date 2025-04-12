@@ -3,8 +3,6 @@ package server;
 import java.io.IOException;
 import java.net.Socket;
 
-import org.bouncycastle.crypto.util.Pack;
-
 import merrimackutil.json.types.JSONArray;
 import shared.MessageSocket;
 import shared.messages.*;
