@@ -57,3 +57,7 @@ build/
 *.swp
 *.swo
 *.tmp
+
+# Ignore extras
+/lib
+*/server/databases

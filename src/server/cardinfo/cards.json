@@ -1,0 +1,62 @@
+[
+    {
+        "cardID": "card001",
+        "name": "Fire Dragon",
+        "rarity": 5,
+        "imageLink": "src/server/cardinfo/images/fire_dragon.png"
+    },
+    {
+        "cardID": "card002",
+        "name": "Water Sprite",
+        "rarity": 3,
+        "imageLink": "src/server/cardinfo/images/water_sprite.png"
+    },
+    {
+        "cardID": "card003",
+        "name": "Earth Golem",
+        "rarity": 4,
+        "imageLink": "src/server/cardinfo/images/earth_golem.png"
+    },
+    {
+        "cardID": "card004",
+        "name": "Wind Elemental",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/wind_elemental.png"
+    },
+    {
+        "cardID": "card005",
+        "name": "Lightning Phoenix",
+        "rarity": 5,
+        "imageLink": "src/server/cardinfo/images/lightning_phoenix.png"
+    },
+    {
+        "cardID": "card006",
+        "name": "Shadow Assassin",
+        "rarity": 4,
+        "imageLink": "src/server/cardinfo/images/shadow_assassin.png"
+    },
+    {
+        "cardID": "card007",
+        "name": "Frost Giant",
+        "rarity": 3,
+        "imageLink": "src/server/cardinfo/images/frost_giant.png"
+    },
+    {
+        "cardID": "card008",
+        "name": "Solar Angel",
+        "rarity": 5,
+        "imageLink": "src/server/cardinfo/images/solar_angel.png"
+    },
+    {
+        "cardID": "card009",
+        "name": "Venomous Hydra",
+        "rarity": 4,
+        "imageLink": "src/server/cardinfo/images/venomous_hydra.png"
+    },
+    {
+        "cardID": "card010",
+        "name": "Mystic Elf",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/mystic_elf.png"
+    }
+]

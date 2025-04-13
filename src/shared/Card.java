@@ -1,20 +1,28 @@
 package shared;
 
-import java.io.File;
-
-class Card {
+public class Card {
+    private String cardID;
     private String name; // Name of the card
     private int rarity; // Rarity of the card (1-5)
-    private File image; // Image of the card
+    private String image; // Image of the card
     
     /**
      * Trading card constructor
      * @param name name of the card
      */
-    Card(String name, int rarity, File image) {
+    public Card(String cardID, String name, int rarity, String image) {
+        this.cardID = cardID;
         this.name = name;
         this.rarity = rarity;
         this.image = image;
+    }
+
+    /**
+     * Get the ID of the card
+     * @return ID of the card
+     */
+    public String getCardID() {
+        return cardID;
     }
 
     /**
@@ -37,7 +45,7 @@ class Card {
      * Get the image of the card
      * @return image of the card
      */
-    public File getImage() {
+    public String getImage() {
         return image;
     }
 }

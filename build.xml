@@ -1,0 +1,44 @@
+<project name="TradingCardGame" default="dist" basedir=".">
+    <description>
+        Builds the Trading Card Game project.
+    </description>
+
+    <!-- Set global properties for this build -->
+    <property name="src" location="src"/>
+    <property name="build" location="build"/>
+    <property name="dist" location="dist"/>
+
+    <target name="init" description="Create the build directory structure">
+        <mkdir dir="${build}"/>
+        <mkdir dir="${dist}"/>
+    </target>
+
+    <target name="compile" depends="init" description="Compile source code">
+        <!-- Compile the Java code from ${src} into ${build} -->
+        <javac includeantruntime="false"
+               srcdir="${src}" destdir="${build}" classpath="lib/merrimackutil.jar:lib/bcprov.jar"/>
+    </target>
+
+    <target name="dist" depends="compile" description="Generate the jar files for the server and client">
+        <!-- Create the server jar file -->
+        <jar jarfile="${dist}/server.jar" basedir="${build}">
+            <manifest>
+                <attribute name="Main-Class" value="server.Server"/>
+                <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
+            </manifest>
+        </jar>
+
+        <!-- Create the client jar file -->
+        <jar jarfile="${dist}/client.jar" basedir="${build}">
+            <manifest>
+                <attribute name="Main-Class" value="client.Client"/>
+                <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="clean" description="Clean up build and dist directories">
+        <delete dir="${build}"/>
+        <delete dir="${dist}"/>
+    </target>
+</project>
