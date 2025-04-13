@@ -9,7 +9,7 @@ import merrimackutil.json.JsonIO;
 import merrimackutil.json.types.JSONArray;
 import merrimackutil.json.types.JSONType;
 
-public class UserCardsDatabase implements JSONSerializable{
+public class UserCardsDatabase implements JSONSerializable {
     private HashMap<String, JSONArray> cards; // username -> cardID
     private File file;
 

@@ -17,7 +17,7 @@ import shared.messages.UserCredResponse;
 public class Client {
     public static void main(String[] args) {
         String serverAddress = "localhost";
-        int port = 5000;
+        int port = 5100;
         String username = null;
         String password = null;
 
