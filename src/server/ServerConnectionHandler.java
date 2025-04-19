@@ -20,10 +20,12 @@ public class ServerConnectionHandler {
     private ConcurrentHashMap<String, ClientHandler> clients = new ConcurrentHashMap<>();
     private UserCredentials userCreds;
     private UserCardsDatabase userCardsDatabase;
+    private TradeDatabase tradeDatabase;
 
-    public void start(int port, UserCredentials userCreds, UserCardsDatabase userCardsDatabase) {
+    public void start(int port, UserCredentials userCreds, UserCardsDatabase userCardsDatabase, TradeDatabase tradeDatabase) {
         this.userCreds = userCreds;
         this.userCardsDatabase = userCardsDatabase;
+        this.tradeDatabase = tradeDatabase;
 
         try {
             serverSocket = new ServerSocket(port);
@@ -62,6 +64,68 @@ public class ServerConnectionHandler {
             return false;
         }
         return true;
+    }
+
+    public String handleTradeInitiation(TradeInitiateRequest request) {
+        String sender = request.getSenderUsername();
+        String recipient = request.getRecipientUsername();
+        JSONArray offeredCards = request.getOfferedCards();
+
+        if (!userCreds.checkUser(sender) || !userCreds.checkUser(recipient)) {
+            return null;
+        }
+
+        try {
+            JSONArray senderCards = userCardsDatabase.getUserCards(sender);
+            for (int i = 0; i < offeredCards.size(); i++) {
+                JSONObject offeredCard = (JSONObject) offeredCards.get(i);
+                boolean cardFound = false;
+
+                for (int j = 0; j < senderCards.size(); j++) {
+                    JSONObject userCard = (JSONObject) senderCards.get(j);
+                    if (userCard.getString("cardID").equals(offeredCard.getString("cardID"))) {
+                        cardFound = true;
+                        break;
+                    }
+                }
+
+                if (!cardFound) {
+                    System.out.println("Card not found");
+                    return null;
+                }
+            } 
+        } catch (InvalidObjectException e) {
+            System.err.println("Error verifying card ownership: " + e.getMessage());
+            return null;
+        }
+
+        String tradeId = tradeDatabase.createTrade(sender, recipient, offeredCards);
+
+        ClientHandler recipientHandler  = clients.get(recipient);
+        if (recipientHandler != null) {
+            TradeOfferNotification notification = new TradeOfferNotification(tradeId, sender, offeredCards);
+            recipientHandler.sendMessage(notification);
+        }
+        return tradeId; 
+    }
+
+    public boolean handleTradeResponse(TradeResponse response) {
+        String tradeId = response.getTradeId();
+        boolean accepted = response.isAccepted();
+
+        JSONObject trade = tradeDatabase.getTrade(tradeId);
+        if (trade == null) {
+            return false;
+        }
+
+        tradeDatabase.updateTradeStatus(tradeId, accepted ? "accepted" : "rejected");
+
+        String initiator = trade.getString("initiator");
+        ClientHandler initiatorHandler = clients.get(initiator);
+        if (initiatorHandler != null) {
+            initiatorHandler.sendMessage(response);
+        }
+        return true; 
     }
 
     public JSONArray handlePackRequest(PackRequest packRequest) {
