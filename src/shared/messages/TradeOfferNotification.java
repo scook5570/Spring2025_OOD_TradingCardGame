@@ -34,17 +34,17 @@ public class TradeOfferNotification extends Message {
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         super.deserialize(jsonType);
         JSONObject jsonObject = (JSONObject) jsonType;
-        tradeId = jsonObject.getString("tradeId");
-        senderUsername = jsonObject.getString("senderUsername");
-        offeredCards = jsonObject.getArray("offeredCards");
+        this.tradeId = jsonObject.getString("tradeId");
+        this.senderUsername = jsonObject.getString("senderUsername");
+        this.offeredCards = jsonObject.getArray("offeredCards");
     }
 
     @Override
     public JSONObject toJSONType() {
         JSONObject jsonObject = super.toJSONType();
-        jsonObject.put("tradeId", tradeId);
-        jsonObject.put("senderUsername", senderUsername);
-        jsonObject.put("offeredCards", offeredCards);
+        jsonObject.put("tradeId", this.tradeId);
+        jsonObject.put("senderUsername", this.senderUsername);
+        jsonObject.put("offeredCards", this.offeredCards);
         return jsonObject;
     }
 
