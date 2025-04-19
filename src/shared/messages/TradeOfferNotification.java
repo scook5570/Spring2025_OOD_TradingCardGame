@@ -18,6 +18,13 @@ public class TradeOfferNotification extends Message {
         this.offeredCards = offeredCards; 
     }
 
+    public TradeOfferNotification(JSONObject obj) {
+        super(obj);
+        if (!super.type.equals("TradeOfferNotification")) {
+            throw new IllegalArgumentException("Bad type: " + super.type);
+        }
+    }
+
     public String getTradeID() {
         return this.tradeId;
     }
