@@ -132,7 +132,9 @@ public class Client {
                 System.out.println("Home Page:");
                 System.out.println("1. Open a pack");
                 System.out.println("2. Get collection");
-                System.out.println("3. Log out");
+                System.out.println("3. Initiate a trade");
+                System.out.println("4. View pending trades");
+                System.out.println("5. Log out");
                 System.out.println("Select an option: ");
 
                 int homeChoice = scanner.nextInt();
@@ -202,6 +204,10 @@ public class Client {
                     }
 
                 } else if (homeChoice == 3) {
+                    initiateTradeFlow(scanner, connectionHandler, username);
+                } else if (homeChoice == 4) {
+                    viewPendingTradesFlow(scanner, connectionHandler, username);
+                } else if (homeChoice == 5) {
                     System.out.println("Logging out...");
                     connectionHandler.disconnect();
                     running = false;
@@ -239,5 +245,88 @@ public class Client {
             System.out.println("Image Link: " + card.getString("imageLink"));
         }
         System.out.println("----------------------------------");
+    }
+
+    /**
+     * 
+     * @param scanner
+     * @param connectionHandler
+     * @param username
+     */
+    private static void initiateTradeFlow(Scanner scanner, ClientConnectionHandler connectionHandler, String username) {
+        System.out.println("Enter the username of the player you'd like to trade with: ");
+        String recipient = scanner.nextLine();
+
+        connectionHandler.getCollection(username, response -> {
+            JSONArray collection = response.getCollection();
+            if (collection.size() == 0) {
+                System.out.println("You dont have any cards to trade!");
+                return; 
+            }
+
+            System.out.println("Your collection: ");
+            displayCards(collection);
+
+            System.out.println("Enter the ID's of cads you want to offer (comma separated)");
+            String cardIdsInput = scanner.nextLine();
+            String[] cardIds = cardIdsInput.split(",");
+
+            JSONArray selectedCards = new JSONArray();
+            for (String cardId : cardIds) {
+                cardId = cardId.trim();
+                for (int i = 0; i < collection.size(); i++) {
+                    JSONObject card = (JSONObject) collection.get(i);
+                    if (card.getString("cardID").equals(cardId)) {
+                        selectedCards.add(card);
+                        break;
+                    }
+                }
+            }
+            if (selectedCards.size() == 0) {
+                System.out.println("No valid cards selected");
+                return;
+            }
+
+            // initiate the trade
+            connectionHandler.initiateTrade(recipient, selectedCards, tradeId -> {
+                if (tradeId != null) {
+                    System.out.println("Trade initiated successfully! Trade ID: " + tradeId);
+                } else {
+                    System.out.println("Failed to initiate trade. Please check the recipient username and try again");
+                }
+            });
+        });
+    }
+
+    /**
+     * 
+     * @param scanner
+     * @param connectionHandler
+     * @param username
+     */
+    private static void viewPendingTradesFlow(Scanner scanner, ClientConnectionHandler connectionHandler, String username) {
+        // set up the callback to handle incoming trade offers
+        connectionHandler.setTradeOfferCallback(offer -> {
+            System.out.println("\nNew trade offer recieved from: " + offer.getSenderUsername());
+            System.out.println("Cards offered: ");
+            displayCards(offer.getOfferedCards());
+
+            System.out.println("Do you want to accept this trade? (yes/no)");
+            String response = scanner.nextLine();
+
+            boolean accept = response.equalsIgnoreCase("yes");
+            connectionHandler.respondToTrade(offer.getTradeID(), accept, tradeResponse -> {
+                if (tradeResponse.isAccepted()) {
+                    System.out.println("Trade accepted! The cards will be exchanged");
+                } else {
+                    System.out.println("Trade rejected");
+                }
+            });
+        });
+
+        System.out.println("Waiting for trade notifications...");
+        System.out.println("Press enter to return to the main menu");
+        scanner.nextLine();
+
     }
 }
