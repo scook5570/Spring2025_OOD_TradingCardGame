@@ -83,7 +83,18 @@ public class ClientHandler implements Runnable {
                     System.err.println("Unknown message type: " + recvMsg.getType());
             }
         } else if (recvMsg instanceof CollectionResponse) {
-            // Handle CollectionResponse if needed
+            System.out.println("ClientHandler.java, line 86: Collection Response handling not yet specified");
+// Handle CollectionResponse if needed
+        } else if (recvMsg instanceof TradeInitiateRequest) {
+            TradeInitiateRequest tradeRequest = (TradeInitiateRequest) recvMsg;
+            String tradeId = server.handleTradeInitiation(tradeRequest);
+            if (tradeId != null) {
+// maybe add a trade id number to specify which trade is waiting for a response
+                System.out.println("Trade initiated successfully, waiting for response");
+            }
+        } else if (recvMsg instanceof TradeResponse) {
+            TradeResponse tradeResponse = (TradeResponse) recvMsg;
+            server.handleTradeResponse(tradeResponse);
         } else {
             System.err.println("Unknown message type: " + recvMsg.getType());
         }

@@ -14,6 +14,8 @@ import java.util.function.Consumer;
 import shared.MessageSocket;
 import shared.messages.*;
 
+import merrimackutil.json.types.JSONArray;
+
 /**
  * Handles the client's connection to the sever using mltithreading and the Observer pattern
  * Implements a single persisten tconection that handles requests and responses asynchronously 
@@ -37,6 +39,8 @@ public class ClientConnectionHandler {
     private Consumer<UserCredResponse> loginCallback; 
     private Consumer<PackResponse> packCallback;
     private Consumer<CollectionResponse> collectionCallback;
+    private Consumer<TradeOfferNotification> tradeOfferCallback;
+    private Consumer<TradeResponse> tradeResponseCallback;
     
     //Regular expressrion for validating username and password 
     private static final Pattern VALID_CREDENTIALS = Pattern.compile("[a-zA-Z0-9_]{3,16}$");
@@ -146,6 +150,18 @@ public class ClientConnectionHandler {
                 System.out.println("Handling Collection Request...");
                 collectionCallback.accept((CollectionResponse) response);
                 System.out.println("Request Handled✅");
+            }
+        } else if (response instanceof TradeOfferNotification) {
+            if (this.tradeOfferCallback != null) {
+                System.out.println("Handling Trade Offer Notification...");
+                tradeOfferCallback.accept((TradeOfferNotification) response);
+                System.out.println("Notification Handled✅");
+            }
+        } else if (response instanceof TradeResponse) {
+            if (this.tradeResponseCallback != null) {
+                System.out.println("Handling Trade Response...");
+                tradeResponseCallback.accept((TradeResponse) response);
+                System.out.println("Response Handled✅");
             }
         }
     }
@@ -274,6 +290,57 @@ public class ClientConnectionHandler {
         CollectionRequest request = new CollectionRequest(username); 
         sendMessage(request);
         System.out.println("Collection received✅");
+    }
+
+    /**
+     * sends a trade intitiation message 
+     * @param recipient
+     * @param offeredCards
+     * @param callback
+     */
+    public void initiateTrade(String recipient, JSONArray offeredCards, Consumer<String> callback) {
+        System.out.println("Initiating trade...");
+
+        if (!this.connected) {
+            System.out.println("Not connected, trying to connect...");
+            if (!connect()) {
+                return;
+            }
+        }
+
+        TradeInitiateRequest request = new TradeInitiateRequest(this.username, recipient, offeredCards);
+        sendMessage(request);
+        System.out.println("Trade request sent");
+    }
+
+    /**
+     * sends a trade response message 
+     * @param tradeId
+     * @param accept
+     * @param callback
+     */
+    public void respondToTrade(String tradeId, boolean accept, Consumer<TradeResponse> callback) {
+        System.out.println("Responding to trade");
+
+        if (!this.connected) {
+            System.out.println("Not connected, trying to connect...");
+            if (!connect()) {
+                return;
+            }
+        }
+
+        this.tradeResponseCallback = callback;
+        TradeResponse response = new TradeResponse(tradeId, accept, this.username);
+        sendMessage(response);
+        System.out.println("Trade response sent");
+    }
+
+    public void setTradeOfferCallback(Consumer<TradeOfferNotification> callback) {
+        this.tradeOfferCallback = callback;
+    }
+
+    public void setTradeResponseCallback(Consumer<TradeResponse> callback) {
+        this.tradeResponseCallback = callback;
     }
 
     /**
