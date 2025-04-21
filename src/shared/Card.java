@@ -12,10 +12,10 @@ public class Card extends JPanel {
     private Dimension dimension = new Dimension(250, 350);
     private String name; // Name of the card
     private int rarity; // Rarity of the card (1-5)
-    private File image; // Image of the card
 
     /**
      * Trading Card Constructor
+     * 
      * @param name   name of the card.
      *               Sould be the same as the name for its texture .png
      * @param rarity how rare is the card is
@@ -35,15 +35,16 @@ public class Card extends JPanel {
             File imageFile = Paths.get(System.getProperty("user.dir"), "assets", this.name + ".png").toFile();
             g.drawImage(ImageIO.read(imageFile), 0, 0, this);
         } catch (IOException e) {
-            // display
-            System.out.println("Exception");
             g.setColor(Color.WHITE);
             // add font
             g.setFont(new Font("Arial", Font.BOLD, 20));
             g.setColor(new Color(0, 0, 0));
             FontMetrics metrics = getFontMetrics(g.getFont());
+            // Display Image Not Found
             g.drawString("Image Not Found", ((int) dimension.getWidth() - metrics.stringWidth("Image Not Found")) / 2,
                     (int) dimension.getHeight() / 12);
+            // Print error
+            e.printStackTrace();        
         }
 
     }
@@ -64,14 +65,5 @@ public class Card extends JPanel {
      */
     public int getRarity() {
         return rarity;
-    }
-
-    /**
-     * Get the image of the card
-     * 
-     * @return image of the card
-     */
-    public File getImage() {
-        return image;
     }
 }
