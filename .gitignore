@@ -58,6 +58,7 @@ build/
 *.swo
 *.tmp
 
+# Ignore extras
+/lib
+*/server/databases
 desing.png
-build.sh
-sources.txt

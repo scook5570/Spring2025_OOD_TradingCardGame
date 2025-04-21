@@ -20,7 +20,9 @@ public class Card extends JPanel {
      *               Sould be the same as the name for its texture .png
      * @param rarity how rare is the card is
      */
-    public Card(String name, int rarity) {
+
+    public Card(String cardID, String name, int rarity, String image) {
+        this.cardID = cardID;
         this.name = name;
         this.rarity = rarity;
         // this.image = image;
@@ -50,6 +52,14 @@ public class Card extends JPanel {
     }
 
     /**
+     * Get the ID of the card
+     * @return ID of the card
+     */
+    public String getCardID() {
+        return cardID;
+    }
+
+    /**
      * Get the name of the card
      * 
      * @return name of the card
@@ -66,4 +76,13 @@ public class Card extends JPanel {
     public int getRarity() {
         return rarity;
     }
+
+    /**
+     * Get the image of the card
+     * @return image of the card
+     */
+    public String getImage() {
+        return image;
+    }
+
 }
