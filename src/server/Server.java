@@ -10,6 +10,6 @@ public class Server {
         TradeDatabase tradeDatabase = new TradeDatabase(new File("src/server/databases/trades.json"));
 
         ServerConnectionHandler handler = new ServerConnectionHandler();
-        handler.start(5000, userCreds, userCardsDatabase, tradeDatabase); // or get port from args
+        handler.start(5100, userCreds, userCardsDatabase, tradeDatabase); // or get port from args
     }
 }

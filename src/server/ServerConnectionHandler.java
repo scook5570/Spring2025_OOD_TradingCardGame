@@ -67,6 +67,9 @@ public class ServerConnectionHandler {
     }
 
     public String handleTradeInitiation(TradeInitiateRequest request) {
+
+        System.out.println("DEBUG: Trade initiation from " + request.getSenderUsername() + " to " + request.getRecipientUsername());
+
         String sender = request.getSenderUsername();
         String recipient = request.getRecipientUsername();
         JSONArray offeredCards = request.getOfferedCards();
@@ -103,8 +106,11 @@ public class ServerConnectionHandler {
 
         ClientHandler recipientHandler  = clients.get(recipient);
         if (recipientHandler != null) {
+            System.out.println("DEBUG: Sending notification to" + recipient);
             TradeOfferNotification notification = new TradeOfferNotification(tradeId, sender, offeredCards);
             recipientHandler.sendMessage(notification);
+        } else {
+            System.out.println("DEBUG: Recipient handler is null, cannot send notification");
         }
         return tradeId; 
     }
