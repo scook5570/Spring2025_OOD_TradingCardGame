@@ -12,6 +12,8 @@ public class Card extends JPanel {
     private Dimension dimension = new Dimension(250, 350);
     private String name; // Name of the card
     private int rarity; // Rarity of the card (1-5)
+    private String cardID;
+    private String image;
 
     /**
      * Trading Card Constructor
@@ -46,13 +48,14 @@ public class Card extends JPanel {
             g.drawString("Image Not Found", ((int) dimension.getWidth() - metrics.stringWidth("Image Not Found")) / 2,
                     (int) dimension.getHeight() / 12);
             // Print error
-            e.printStackTrace();        
+            e.printStackTrace();
         }
 
     }
 
     /**
      * Get the ID of the card
+     * 
      * @return ID of the card
      */
     public String getCardID() {
@@ -79,6 +82,7 @@ public class Card extends JPanel {
 
     /**
      * Get the image of the card
+     * 
      * @return image of the card
      */
     public String getImage() {

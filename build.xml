@@ -1,4 +1,4 @@
-<project name="TradingCardGame" default="dist" basedir=".">
+<project name="TradingCardGame" default="run" basedir=".">
     <description>
         Builds the Trading Card Game project.
     </description>
@@ -35,6 +35,17 @@
                 <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
             </manifest>
         </jar>
+
+        <jar jarfile="${dist}/main.jar" basedir="${build}">
+            <manifest>
+                <attribute name="Main-Class" value="Main"/>
+                <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="run" depends="dist" description="Run the application">
+        <java jar="${dist}/main.jar" fork="true"/>
     </target>
 
     <target name="clean" description="Clean up build and dist directories">
