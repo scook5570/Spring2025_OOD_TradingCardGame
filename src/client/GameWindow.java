@@ -87,6 +87,7 @@ public class GameWindow extends JFrame {
         bottomPanel.add(tradeButton);
 
         add(bottomPanel, BorderLayout.SOUTH);
+        setVisible(true);
     }
 
     /**

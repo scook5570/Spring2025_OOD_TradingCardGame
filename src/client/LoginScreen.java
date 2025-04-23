@@ -1,9 +1,15 @@
 package client;
 
 import javax.swing.*;
+
+import shared.MessageSocket;
+import shared.messages.Message;
+import shared.messages.UserCredRequest;
+import shared.messages.UserCredResponse;
+
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.Socket;
 
 public class LoginScreen extends JFrame {
     private final JTextField usernameField;
@@ -15,6 +21,13 @@ public class LoginScreen extends JFrame {
     private final JLabel messageLabel;
     private final JPanel loginPanel;
     private final JPanel buttonPanel;
+    String serverAddress = "localhost";
+    int port = 5000;
+    // Alphanumeric and 5-12 characters
+    String userRegex = "[A-Z,a-z,0-9]{5,12}";
+    // At least one digit, one uppercase letter, one special character, 8+
+    // characters
+    String passRegex = "^(?=.*\\d)(?=.*[A-Z])(?=.*[\\W_]).{8,}$";
 
     public LoginScreen() {
         setTitle("Login");
@@ -50,25 +63,25 @@ public class LoginScreen extends JFrame {
         // Set insets for spacing
         loginGBC.insets = new Insets(5, 5, 5, 5);
 
-        loginGBC.gridx = 0;  // Column 0
-        loginGBC.gridy = 0;  // Row 0
+        loginGBC.gridx = 0; // Column 0
+        loginGBC.gridy = 0; // Row 0
         loginPanel.add(usernameLabel, loginGBC);
 
-        loginGBC.gridx = 1;  // Column 1
-        loginGBC.gridy = 0;  // Row 0
+        loginGBC.gridx = 1; // Column 1
+        loginGBC.gridy = 0; // Row 0
         loginPanel.add(usernameField, loginGBC);
 
-        loginGBC.gridx = 0;  // Column 0
-        loginGBC.gridy = 1;  // Row 1
+        loginGBC.gridx = 0; // Column 0
+        loginGBC.gridy = 1; // Row 1
         loginPanel.add(passwordLabel, loginGBC);
 
-        loginGBC.gridx = 1;  // Column 1
-        loginGBC.gridy = 1;  // Row 1
+        loginGBC.gridx = 1; // Column 1
+        loginGBC.gridy = 1; // Row 1
         loginPanel.add(passwordField, loginGBC);
 
-        loginGBC.gridx = 0;  // Column 0
-        loginGBC.gridy = 4;  // Row 4
-        loginGBC.gridwidth = 2;  // Span two columns
+        loginGBC.gridx = 0; // Column 0
+        loginGBC.gridy = 4; // Row 4
+        loginGBC.gridwidth = 2; // Span two columns
         loginPanel.add(messageLabel, loginGBC);
 
         buttonPanel = new JPanel(new GridLayout(1, 2));
@@ -89,42 +102,81 @@ public class LoginScreen extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         add(buttonPanel, gbc);
 
-
-
         // Button action listener for login
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String username = usernameField.getText();
-                String password = new String(passwordField.getPassword());
-                // TODO: Implement logic to check user credentials from a JSON file or other database
-                // Test credentials for now
-                if ("user".equals(username) && "password".equals(password)) {
-                    messageLabel.setText("Login successful!");
-                } else {
-                    messageLabel.setText("Invalid credentials!");
-                    // TODO: Implement a counter for failed login attempts
-                    // TODO: Implement password reset
-                }
-            }
-        });
+        loginButton.addActionListener(e -> authenticate("Login"));
 
         // Button action listener for register
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String username = usernameField.getText();
-                String password = new String(passwordField.getPassword());
+        registerButton.addActionListener(e -> authenticate("Register"));
 
-                // Simple registration logic (can be expanded)
-                if (!username.isEmpty() && !password.isEmpty()) {
-                    // TODO: Save the new user data (username and password) into a JSON file
-                    messageLabel.setText("Registration successful!");
-                } else {
-                    messageLabel.setText("Please fill in both fields.");
-                    // TODO: Add password strength validation here (using regex)
-                }
-            }
-        });
+        setVisible(true);
     }
+
+    private boolean validateCredentials() {
+        // Getting credentials
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
+
+        // Check if both username and password are invalid
+        if (!username.matches(userRegex) && !password.matches(passRegex)) {
+            messageLabel.setText("Invalid Credentials");
+            return false;
+        }
+
+        // Check for valid username
+        if (!username.matches(userRegex)) {
+            messageLabel.setText("Invalid Username");
+            return false;
+        }
+
+        // Check for valid password
+        if (!password.matches(passRegex)) {
+            messageLabel.setText("Invalid Password");
+            return false;
+        }
+
+        // Both valid so return true
+        return true;
+    }
+
+    private void authenticate(String requestType) {
+        // Getting credentials
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
+
+        // Assure credentials meet regex requirements
+        if (!validateCredentials()) {
+            return;
+        }
+
+        try {
+            // Connect to the server
+            MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
+            UserCredRequest userCredRequest = new UserCredRequest(requestType, username, password);
+            messageLabel.setText("Sending " + requestType + " request...");
+            messageSocket.sendMessage(userCredRequest);
+
+            // Receive and process the response
+            Message response = messageSocket.getMessage();
+            if (response instanceof UserCredResponse) {
+                UserCredResponse userCredResponse = (UserCredResponse) response;
+                if (userCredResponse.isSuccess() && requestType == "Login") {
+                    new GameWindow();
+                    dispose();
+                } else if (userCredResponse.isSuccess()) {
+                    messageLabel.setText("Successfully Registered");
+                } else {
+                    messageLabel.setText(requestType + " Failed");
+                }
+            } else {
+                messageLabel.setText("Unexpected response type: " + response.getType());
+            }
+
+            // Close the connection
+            messageSocket.close();
+            // messageLabel.setText("Socket closed");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

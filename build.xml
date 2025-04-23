@@ -36,6 +36,7 @@
             </manifest>
         </jar>
 
+        <!-- Create the main jar file -->
         <jar jarfile="${dist}/main.jar" basedir="${build}">
             <manifest>
                 <attribute name="Main-Class" value="Main"/>
@@ -44,9 +45,24 @@
         </jar>
     </target>
 
-    <target name="run" depends="dist" description="Run the application">
-        <java jar="${dist}/main.jar" fork="true"/>
+    <target name="run" depends="dist">
+        <java classname="Main" fork="true">
+            <classpath>
+                <pathelement path="${dist}/Main.jar"/>
+                <pathelement path="lib/merrimackutil.jar"/>
+            </classpath>
+        </java>
     </target>
+
+    <target name="server" depends="dist">
+        <java classname="server.Server" fork="true">
+            <classpath>
+                <pathelement path="${dist}/server.jar"/>
+                <pathelement path="lib/merrimackutil.jar"/>
+            </classpath>
+        </java>
+    </target>
+
 
     <target name="clean" description="Clean up build and dist directories">
         <delete dir="${build}"/>
