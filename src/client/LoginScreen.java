@@ -46,11 +46,16 @@ public class LoginScreen extends JFrame {
         usernameField = new JTextField(15);
         passwordField = new JPasswordField(15);
 
+        // Focuses on password field when enter user hit [enter] on the username field
+        usernameField.addActionListener(e -> {
+            passwordField.requestFocusInWindow();
+        });
+
+        // Attempts login when enter user hit [enter] on password field
+        passwordField.addActionListener(e -> authenticate("Login"));
         // Buttons
         loginButton = new JButton("Login");
         registerButton = new JButton("Register");
-
-        // Create a layout manager
 
         // Clear existing layout and constraints
         setLayout(new GridBagLayout());
@@ -111,6 +116,11 @@ public class LoginScreen extends JFrame {
         setVisible(true);
     }
 
+
+    /**
+     * Checks the user credentials for regex requiremnets
+     * @return If the credentiasl meet regex requirements
+     */
     private boolean validateCredentials() {
         // Getting credentials
         String username = usernameField.getText();
@@ -138,6 +148,10 @@ public class LoginScreen extends JFrame {
         return true;
     }
 
+    /**
+     * Attempts to login or register 
+     * @param requestType Whether it should "Login" or "Register" the user
+     */
     private void authenticate(String requestType) {
         // Getting credentials
         String username = usernameField.getText();
@@ -173,7 +187,6 @@ public class LoginScreen extends JFrame {
 
             // Close the connection
             messageSocket.close();
-            // messageLabel.setText("Socket closed");
         } catch (IOException e) {
             e.printStackTrace();
         }
