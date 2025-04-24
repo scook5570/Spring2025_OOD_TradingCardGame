@@ -1,7 +1,14 @@
 package server;
 
 import java.io.File;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+
+/**
+ * 
+ */
 public class Server {
     public static void main(String[] args) {
 
@@ -9,7 +16,23 @@ public class Server {
         UserCardsDatabase userCardsDatabase = new UserCardsDatabase(new File("src/server/databases/usercards.json"));
         TradeDatabase tradeDatabase = new TradeDatabase(new File("src/server/databases/trades.json"));
 
+        // schedule trade cleanup task
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                tradeDatabase.cleanupStaleTrades(30000); // 30 seconds
+            } catch (Exception e) {
+                System.err.println("Error during trade cleanup: " + e.getMessage());
+            }
+        }, 30, 30, TimeUnit.SECONDS); // run every 30 seconds
+
         ServerConnectionHandler handler = new ServerConnectionHandler();
         handler.start(5100, userCreds, userCardsDatabase, tradeDatabase); // or get port from args
+
+        // shutdown hook to clean up resources when server is stopped
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            scheduler.shutdown();
+            System.out.println("Server shutting down");
+        }));
     }
 }

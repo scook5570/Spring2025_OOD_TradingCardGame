@@ -3,17 +3,6 @@ package client;
 //import java.net.Socket;
 import java.util.Scanner;
 
-import merrimackutil.json.types.JSONArray;
-import merrimackutil.json.types.JSONObject;
-// import shared.MessageSocket;
-// import shared.messages.CollectionRequest;
-// import shared.messages.CollectionResponse;
-// import shared.messages.Message;
-// import shared.messages.PackRequest;
-// import shared.messages.PackResponse;
-// import shared.messages.UserCredRequest;
-// import shared.messages.UserCredResponse;
-
 public class Client {
     public static void main(String[] args) {
         // String serverAddress = "localhost";
@@ -28,9 +17,6 @@ public class Client {
             loggedIn.value = false;
 
             while (!loggedIn.value) {
-                // Connect to the server
-                // MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
-                // System.out.println("Connected to server at " + serverAddress + ":" + port);
 
                 // CLI for user input
                 System.out.println("Choose an option:");
@@ -56,35 +42,18 @@ public class Client {
                     return;
                 }
 
-                final String finalUsername = username; //for use in lambda
-
                 //String requestType;
                 if (choice == 1) {
                     System.out.println("Sending Register request...");
                     connectionHandler.connect(); // make sure connection is there
 
-                    connectionHandler.register(username, password, response -> {
-                        if (response.isSuccess()) {
-                            System.out.println("Registration successful✅");
-                            connectionHandler.setUsername(finalUsername);
-                        } else {
-                            System.out.println("Registration failed...");
-                        }
-                    });
+                    connectionHandler.register(username, password);
                 } else if (choice == 2) {
                     //requestType = "Login";
                     System.out.println("Sending login request...");
                     connectionHandler.connect();
                     
-                    connectionHandler.login(username, password, response -> {
-                        if (response.isSuccess()) {
-                            System.out.println("Login successfull");
-                            connectionHandler.setUsername(finalUsername);
-                            loggedIn.value = true; 
-                        } else {
-                            System.out.println("Login failed...");
-                        }
-                    });
+                    connectionHandler.login(username, password);
 
                 } else {
                     System.out.println("Invalid choice. Exiting...");
@@ -99,32 +68,6 @@ public class Client {
                     e.printStackTrace();
                 } 
             }
-
-            //     // Create and send the UserCredRequest
-            //     UserCredRequest userCredRequest = new UserCredRequest(requestType, username, password);
-            //     System.out.println("Sending " + requestType + " request...");
-            //     messageSocket.sendMessage(userCredRequest);
-
-            //     // Receive and process the response
-            //     Message response = messageSocket.getMessage();
-            //     if (response instanceof UserCredResponse) {
-            //         UserCredResponse userCredResponse = (UserCredResponse) response;
-            //         if (userCredResponse.isSuccess()) {
-            //             System.out.println(requestType + " successful!");
-            //             if (requestType.equals("Login")) {
-            //                 loggedIn = true;
-            //             }
-            //         } else {
-            //             System.out.println(requestType + " failed...");
-            //         }
-            //     } else {
-            //         System.err.println("Unexpected response type: " + response.getType());
-            //     }
-
-            //     // Close the connection
-            //     messageSocket.close();
-            //     System.out.println("Socket closed");
-            // }
 
             // Home page loop
             boolean running = true;
@@ -142,60 +85,15 @@ public class Client {
 
                 if (homeChoice == 1) {
                     System.out.println("Opening a pack...");
-                    // MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
-                    // System.out.println("Connected to server at " + serverAddress + ":" + port);
-                    // PackRequest packRequest = new PackRequest(username, "PackNamePlaceholder", 5);
-                    // messageSocket.sendMessage(packRequest);
-
-                    // Message response = messageSocket.getMessage();
-                    // if (response instanceof PackResponse) {
-                    //     PackResponse packResponse = (PackResponse) response;
-                    //     JSONArray cards = packResponse.getCards();
-                    //     System.out.println("You opened a pack with the following cards:");
-                    //     for (int i = 0; i < cards.size(); i++) {
-                    //         JSONObject card = (JSONObject) cards.get(i);
-                    //         System.out.println("Card ID: " + card.getString("cardID"));
-                    //         System.out.println("Name: " + card.getString("name"));
-                    //         System.out.println("Rarity: " + card.getInt("rarity"));
-                    //         System.out.println("Image Link: " + card.getString("imageLink"));
-                    connectionHandler.openPack(username, "StandardPack", 5, response -> {
-                        JSONArray cards = response.getCards();
-                        System.out.println("\nYou opened a pack wih the following cards:");
-                        displayCards(cards);
-                    });        
-                    // } else {
-                    //     System.err.println("Unexpected response type: " + response.getType());
-                    // }
-                    
+                    connectionHandler.openPack(username, "StandardPack", 5);        
                     try { //waiting for the response to be processed
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    //messageSocket.close();
                 } else if (homeChoice == 2) {
                     System.out.println("Retrieving collection...");
-                    // MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
-                    // System.out.println("Connected to server at " + serverAddress + ":" + port);
-                    // CollectionRequest collectionRequest = new CollectionRequest(username);
-                    // messageSocket.sendMessage(collectionRequest);
-
-                    // Message response = messageSocket.getMessage();
-                    // if (response instanceof CollectionResponse) {
-                    //     CollectionResponse collectionResponse = (CollectionResponse) response;
-                    //     JSONArray cards = collectionResponse.getCollection();
-                    //     System.out.println("Your collection contains the following cards:");
-                    //     for (int i = 0; i < cards.size(); i++) {
-                    //         JSONObject card = (JSONObject) cards.get(i);
-                    //         System.out.println("Card ID: " + card.getString("cardID"));
-                    //         System.out.println("Name: " + card.getString("name"));
-                    //         System.out.println("Rarity: " + card.getInt("rarity"));
-                    //         System.out.println("Image Link: " + card.getString("imageLink"));
-                    connectionHandler.getCollection(username, response -> {
-                        JSONArray cards = response.getCollection();
-                        System.out.println("\nYour collection contains the following cards:");
-                        displayCards(cards);
-                    });      
+                    connectionHandler.getCollection(username);      
                     
                     try {
                         Thread.sleep(1000);
@@ -226,28 +124,6 @@ public class Client {
     }
 
     /**
-     * Helper method to display cards 
-     * @param cards
-     */
-    private static void displayCards(JSONArray cards) {
-
-        if (cards == null || cards.size() == 0) {
-            System.out.println("No cards found");
-            return;
-        }
-
-        for (int i = 0; i < cards.size(); i++) {
-            JSONObject card = (JSONObject) cards.get(i);
-            System.out.println("----------------------------------");
-            System.out.println("CardID: " + card.getString("cardID"));
-            System.out.println("Name: " + card.getString("name")); 
-            System.out.println("Rarity: " + card.getInt("rarity"));
-            System.out.println("Image Link: " + card.getString("imageLink"));
-        }
-        System.out.println("----------------------------------");
-    }
-
-    /**
      * 
      * @param scanner
      * @param connectionHandler
@@ -257,45 +133,7 @@ public class Client {
         System.out.println("Enter the username of the player you'd like to trade with: ");
         String recipient = scanner.nextLine();
 
-        connectionHandler.getCollection(username, response -> {
-            JSONArray collection = response.getCollection();
-            if (collection.size() == 0) {
-                System.out.println("You dont have any cards to trade!");
-                return; 
-            }
-
-            System.out.println("Your collection: ");
-            displayCards(collection);
-
-            System.out.println("Enter the ID's of cads you want to offer (comma separated)");
-            String cardIdsInput = scanner.nextLine();
-            String[] cardIds = cardIdsInput.split(",");
-
-            JSONArray selectedCards = new JSONArray();
-            for (String cardId : cardIds) {
-                cardId = cardId.trim();
-                for (int i = 0; i < collection.size(); i++) {
-                    JSONObject card = (JSONObject) collection.get(i);
-                    if (card.getString("cardID").equals(cardId)) {
-                        selectedCards.add(card);
-                        break;
-                    }
-                }
-            }
-            if (selectedCards.size() == 0) {
-                System.out.println("No valid cards selected");
-                return;
-            }
-
-            // initiate the trade
-            connectionHandler.initiateTrade(recipient, selectedCards, tradeId -> {
-                if (tradeId != null) {
-                    System.out.println("Trade initiated successfully! Trade ID: " + tradeId);
-                } else {
-                    System.out.println("Failed to initiate trade. Please check the recipient username and try again");
-                }
-            });
-        });
+        connectionHandler.getCollection(username);
     }
 
     /**
@@ -306,23 +144,7 @@ public class Client {
      */
     private static void viewPendingTradesFlow(Scanner scanner, ClientConnectionHandler connectionHandler, String username) {
         // set up the callback to handle incoming trade offers
-        connectionHandler.setTradeOfferCallback(offer -> {
-            System.out.println("\nNew trade offer recieved from: " + offer.getSenderUsername());
-            System.out.println("Cards offered: ");
-            displayCards(offer.getOfferedCards());
-
-            System.out.println("Do you want to accept this trade? (yes/no)");
-            String response = scanner.nextLine();
-
-            boolean accept = response.equalsIgnoreCase("yes");
-            connectionHandler.respondToTrade(offer.getTradeID(), accept, tradeResponse -> {
-                if (tradeResponse.isAccepted()) {
-                    System.out.println("Trade accepted! The cards will be exchanged");
-                } else {
-                    System.out.println("Trade rejected");
-                }
-            });
-        });
+        connectionHandler.waitForTradeOffer(15);
 
         System.out.println("Waiting for trade notifications...");
         System.out.println("Press enter to return to the main menu");

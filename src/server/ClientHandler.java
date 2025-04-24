@@ -7,12 +7,20 @@ import merrimackutil.json.types.JSONArray;
 import shared.MessageSocket;
 import shared.messages.*;
 
+/**
+ * 
+ */
 public class ClientHandler implements Runnable {
     private Socket socket;
     private MessageSocket msgSocket;
     private ServerConnectionHandler server;
     private String username;
 
+    /**
+     * 
+     * @param socket
+     * @param server
+     */
     public ClientHandler(Socket socket, ServerConnectionHandler server) {
         this.socket = socket;
         this.server = server;
@@ -24,6 +32,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * 
+     */
     @Override
     public void run() {
         try {
@@ -112,7 +123,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    // Method to send a message to the client
+    // method to send a message to the client
     public void sendMessage(Message message) {
         msgSocket.sendMessage(message);
     }

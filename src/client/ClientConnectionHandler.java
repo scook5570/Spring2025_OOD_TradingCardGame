@@ -4,12 +4,18 @@ import java.io.IOException;
 
 import java.net.Socket;
 
-import java.util.concurrent.ExecutorService; 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors; 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import java.util.regex.Pattern;
 
 import java.util.function.Consumer; 
+
+import client.EventBus.EventType;
 
 import shared.MessageSocket;
 import shared.messages.*;
@@ -33,15 +39,18 @@ public class ClientConnectionHandler {
 
     //Thread management 
     private Thread receiverThread;
-    private ExecutorService executorService; 
+    private ScheduledExecutorService executorService; 
 
     // Callbacks for different message types 
-    private Consumer<UserCredResponse> loginCallback; 
-    private Consumer<PackResponse> packCallback;
-    private Consumer<CollectionResponse> collectionCallback;
-    private Consumer<TradeOfferNotification> tradeOfferCallback;
-    private Consumer<TradeResponse> tradeResponseCallback;
+    // private Consumer<UserCredResponse> loginCallback; 
+    // private Consumer<PackResponse> packCallback;
+    // private Consumer<CollectionResponse> collectionCallback;
+    // private Consumer<TradeOfferNotification> tradeOfferCallback;
+    // private Consumer<TradeResponse> tradeResponseCallback;
     
+    private final ConcurrentHashMap<String, 
+                  CompletableFuture<String>> pendingTrades = new ConcurrentHashMap<>();
+
     //Regular expressrion for validating username and password 
     private static final Pattern VALID_CREDENTIALS = Pattern.compile("[a-zA-Z0-9_]{3,16}$");
 
@@ -51,7 +60,7 @@ public class ClientConnectionHandler {
     private ClientConnectionHandler() {
         this.serverAddress = "localhost";
         this.serverPort = 5100; // CHANGE IF NEEDED, MY MAC's 5000 PORT IS OCCUPIED
-        this.executorService = Executors.newCachedThreadPool();
+        this.executorService = Executors.newScheduledThreadPool(1);
     }
 
     /**
@@ -132,37 +141,26 @@ public class ClientConnectionHandler {
      * @param response
      */
     private void handleResponse(Message response) {
-        System.out.println("Handling response...");
-        if (response instanceof UserCredResponse) {
-            if (this.loginCallback != null) {
-                System.out.println("Handling User Cred Request...");
-                loginCallback.accept((UserCredResponse) response);
-                System.out.println("Request Handled✅");
-            }  
-        } else if (response instanceof PackResponse) {
-            if (this.packCallback != null) {
-                System.out.println("Handling Pack Request...");
-                packCallback.accept((PackResponse) response);
-                System.out.println("Request Handled✅");
-            }
-        } else if (response instanceof CollectionResponse) {
-            if (this.collectionCallback != null) {
-                System.out.println("Handling Collection Request...");
-                collectionCallback.accept((CollectionResponse) response);
-                System.out.println("Request Handled✅");
-            }
-        } else if (response instanceof TradeOfferNotification) {
-            if (this.tradeOfferCallback != null) {
-                System.out.println("Handling Trade Offer Notification...");
-                tradeOfferCallback.accept((TradeOfferNotification) response);
-                System.out.println("Notification Handled✅");
-            }
-        } else if (response instanceof TradeResponse) {
-            if (this.tradeResponseCallback != null) {
-                System.out.println("Handling Trade Response...");
-                tradeResponseCallback.accept((TradeResponse) response);
-                System.out.println("Response Handled✅");
-            }
+        System.out.println("Handling response: " + response.getType());
+
+        switch (response.getType()) {
+            case "Status":
+                EventBus.getInstance().publish(EventType.LOGIN_RESPONSE, response);
+                break;
+            case "PackResponse":
+                EventBus.getInstance().publish(EventType.PACK_RESPONSE, response);
+                break;
+            case "CollectionResponse":
+                EventBus.getInstance().publish(EventType.COLLECTION_RESPONSE, response);
+                break;
+            case "TradeOfferNotification":
+                EventBus.getInstance().publish(EventType.TRADE_OFFER, response);
+                break;
+            case "TradeResponse":
+                EventBus.getInstance().publish(EventType.TRADE_RESPONSE, response);
+                break;
+            default:
+            System.err.println("Unkown response type: " + response.getType());
         }
     }
 
@@ -242,26 +240,57 @@ public class ClientConnectionHandler {
      * @param password
      * @param callback
      */
-    public void login(String username, String password, Consumer<UserCredResponse> callback) {
+    public CompletableFuture<Boolean>  login(String username, String password) {
         System.out.println("Logging in...");
-        this.loginCallback = callback; 
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        // setup one time event listener
+        Consumer<UserCredResponse> listener = response -> {
+            boolean success = response.isSuccess();
+            if (success) {
+                this.username = username;
+                System.out.println("Login Successful");
+            } else {
+                System.out.println("Login failed");
+            }
+            future.complete(success);
+        };
+
+        EventBus.getInstance().subscribe(EventType.LOGIN_RESPONSE, listener);
+
+        // send login request
         UserCredRequest request = new UserCredRequest("Login", username, password);
         sendMessage(request);
-        System.out.println("Login successful✅");
+
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.LOGIN_RESPONSE, listener));
     }
 
     /**
      * Register a new user
      * @param username
      * @param password
-     * @param callback
      */
-    public void register(String username, String password, Consumer<UserCredResponse> callback) {
+    public CompletableFuture<Boolean> register(String username, String password) {
         System.out.println("Registering...");
-        this.loginCallback = callback; 
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Consumer<UserCredResponse> listener = response -> {
+            boolean success = response.isSuccess();
+            if (success) {
+                this.username = username;
+                System.out.println("Registration successful");
+            } else {
+                System.out.println("Registration failed");
+            }
+            future.complete(success);
+        };
+
+        EventBus.getInstance().subscribe(EventType.LOGIN_RESPONSE, listener);
+
         UserCredRequest request = new UserCredRequest("Register", username, password);
         sendMessage(request);
-        System.out.println("Registering successful✅");
+
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.LOGIN_RESPONSE, listener));
     }
 
     /**
@@ -269,79 +298,128 @@ public class ClientConnectionHandler {
      * @param username
      * @param packName
      * @param cardCount
-     * @param callback
      */
-    public void openPack(String username, String packName, int cardCount, Consumer<PackResponse> callback) {
-        System.out.println("Opening pack...");
-        this.packCallback = callback; 
-        PackRequest request = new PackRequest(username, packName, cardCount);
-        sendMessage(request);
-        System.out.println("Pack opened✅");
+    public CompletableFuture<JSONArray> openPack(String username, String packName, int cardCount) {
+       System.out.println("Opening pack...");
+       CompletableFuture<JSONArray> future = new CompletableFuture<>();
+
+       Consumer<PackResponse> listener = response -> {
+        JSONArray cards = response.getCards();
+        System.out.println("Pack opened with " + cards.size() + " cards");
+        future.complete(cards);
+       };
+
+       PackRequest request = new PackRequest(username, packName, cardCount);
+       sendMessage(request);
+
+       return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.PACK_RESPONSE, listener));
     }
 
     /**
      * Request a user's card collection
      * @param username
-     * @param callback
      */
-    public void getCollection(String username, Consumer<CollectionResponse> callback) {
+    public CompletableFuture<JSONArray> getCollection(String username) {
         System.out.println("Getting collection...");
-        this.collectionCallback = callback; 
-        CollectionRequest request = new CollectionRequest(username); 
+        CompletableFuture<JSONArray> future = new CompletableFuture<>();
+
+        Consumer<CollectionResponse> listener = response -> {
+            JSONArray collection = response.getCollection();
+            System.out.println("Collection received with " + collection.size() + " cards");
+            future.complete(collection);
+        };
+
+        EventBus.getInstance().subscribe(EventType.COLLECTION_RESPONSE, listener);
+
+        CollectionRequest request = new CollectionRequest(username);
         sendMessage(request);
-        System.out.println("Collection received✅");
+
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.COLLECTION_RESPONSE, listener));
+
     }
 
     /**
      * sends a trade intitiation message 
      * @param recipient
      * @param offeredCards
-     * @param callback
      */
-    public void initiateTrade(String recipient, JSONArray offeredCards, Consumer<String> callback) {
-        System.out.println("Initiating trade...");
+    public CompletableFuture<String> initiateTrade(String recipient, JSONArray offeredCards) {
+        System.out.println("Initiating trade with " + recipient);
 
-        if (!this.connected) {
-            System.out.println("Not connected, trying to connect...");
-            if (!connect()) {
-                return;
-            }
+        if (this.username == null) {
+            CompletableFuture<String> failedFuture = new CompletableFuture<>();
+            failedFuture.completeExceptionally(new IllegalStateException("Not logged in"));
+            return failedFuture;
         }
 
         TradeInitiateRequest request = new TradeInitiateRequest(this.username, recipient, offeredCards);
         sendMessage(request);
+
         System.out.println("Trade request sent");
+        return CompletableFuture.completedFuture("Trade initiated");
+    }
+
+    /**
+     * 
+     * @param timeoutSeconds
+     * @return
+     */
+    public CompletableFuture<TradeOfferNotification> waitForTradeOffer(long timeoutSeconds) {
+        System.out.println("Waiting for trade offers...");
+        CompletableFuture<TradeOfferNotification> future = new CompletableFuture<>();
+
+        Consumer<TradeOfferNotification> listener = offer -> {
+            System.out.println("Received trade offer from: " + offer.getSenderUsername());
+            future.complete(offer);
+        };
+
+        EventBus.getInstance().subscribe(EventType.TRADE_OFFER, listener);
+
+        // schedule timeout
+        executorService.schedule(() -> {
+            if (!future.isDone()) {
+                future.completeExceptionally(new TimeoutException("No trade offer reveived"));
+                EventBus.getInstance().unsubscribe(EventType.TRADE_OFFER, listener);
+            }
+        }, timeoutSeconds, TimeUnit.SECONDS);
+
+        return future.whenComplete((result, ex) -> {
+            if (result != null) {
+                EventBus.getInstance().unsubscribe(EventType.TRADE_OFFER, listener);
+            }
+        });
     }
 
     /**
      * sends a trade response message 
      * @param tradeId
      * @param accept
-     * @param callback
      */
-    public void respondToTrade(String tradeId, boolean accept, Consumer<TradeResponse> callback) {
-        System.out.println("Responding to trade");
+    public CompletableFuture<Boolean> respondToTrade(String tradeId, boolean accept) {
+        System.out.println("Responding to trade " + tradeId + ": " + (accept ? "accept" : "reject"));
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-        if (!this.connected) {
-            System.out.println("Not connected, trying to connect...");
-            if (!connect()) {
-                return;
-            }
-        }
+        Consumer<TradeResponse> listener = response -> {
+            boolean success = response.isAccepted() == accept;
+            System.out.println("Trade response processed: " + success);
+            future.complete(success);
+        };
 
-        this.tradeResponseCallback = callback;
+        EventBus.getInstance().subscribe(EventType.TRADE_RESPONSE, listener);
+
         TradeResponse response = new TradeResponse(tradeId, accept, this.username);
         sendMessage(response);
-        System.out.println("Trade response sent");
+
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.TRADE_RESPONSE, listener));
     }
 
-    public void setTradeOfferCallback(Consumer<TradeOfferNotification> callback) {
-        this.tradeOfferCallback = callback;
-    }
+    // public void setTradeOfferCallback(Consumer<TradeOfferNotification> callback) {
+    //     this.tradeOfferCallback = callback;
+    // }
 
-    public void setTradeResponseCallback(Consumer<TradeResponse> callback) {
-        this.tradeResponseCallback = callback;
-    }
+    // public void setTradeResponseCallback(Consumer<TradeResponse> callback) {
+    //     this.tradeResponseCallback = callback;
+    // }
 
     /**
      * Set the current username

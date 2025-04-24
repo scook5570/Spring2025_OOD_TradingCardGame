@@ -15,6 +15,10 @@ public class UserCredentials implements JSONSerializable {
     private HashMap<String, String> credentials;
     private File file;
 
+    /**
+     * 
+     * @param file
+     */
     public UserCredentials(File file) {
         this.file = file;
         if (!file.exists() || file.length() == 0) {
@@ -90,6 +94,9 @@ public class UserCredentials implements JSONSerializable {
         return credentials.get(username).equals(password);
     }
 
+    /**
+     * 
+     */
     @Override
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         if (!(jsonType instanceof JSONArray)) {
@@ -104,6 +111,9 @@ public class UserCredentials implements JSONSerializable {
         }
     }
 
+    /**
+     * 
+     */
     @Override
     public JSONType toJSONType() {
         // write the credentials hash map to a json array

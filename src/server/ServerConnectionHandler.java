@@ -22,6 +22,13 @@ public class ServerConnectionHandler {
     private UserCardsDatabase userCardsDatabase;
     private TradeDatabase tradeDatabase;
 
+    /**
+     * 
+     * @param port
+     * @param userCreds
+     * @param userCardsDatabase
+     * @param tradeDatabase
+     */
     public void start(int port, UserCredentials userCreds, UserCardsDatabase userCardsDatabase, TradeDatabase tradeDatabase) {
         this.userCreds = userCreds;
         this.userCardsDatabase = userCardsDatabase;
@@ -39,6 +46,11 @@ public class ServerConnectionHandler {
         }
     }
 
+    /**
+     * 
+     * @param userCredRequest
+     * @return
+     */
     public boolean handleLogin(UserCredRequest userCredRequest) {
         if (!(userCreds.checkUser(userCredRequest.getUsername()))) {
             return false;
@@ -51,6 +63,11 @@ public class ServerConnectionHandler {
         return false;
     }
 
+    /**
+     * 
+     * @param userCredRequest
+     * @return
+     */
     public boolean handleRegistration(UserCredRequest userCredRequest) {
         if (userCreds.checkUser(userCredRequest.getUsername())) {
             return false;
@@ -66,6 +83,11 @@ public class ServerConnectionHandler {
         return true;
     }
 
+    /**
+     * 
+     * @param request
+     * @return
+     */
     public String handleTradeInitiation(TradeInitiateRequest request) {
 
         System.out.println("DEBUG: Trade initiation from " + request.getSenderUsername() + " to " + request.getRecipientUsername());
@@ -103,6 +125,7 @@ public class ServerConnectionHandler {
         }
 
         String tradeId = tradeDatabase.createTrade(sender, recipient, offeredCards);
+        TradeLogger.getInstance().logTradeCreation(tradeId, sender, recipient, offeredCards);
 
         ClientHandler recipientHandler  = clients.get(recipient);
         if (recipientHandler != null) {
@@ -114,7 +137,12 @@ public class ServerConnectionHandler {
         }
         return tradeId; 
     }
-
+    
+    /**
+     * 
+     * @param response
+     * @return
+     */
     public boolean handleTradeResponse(TradeResponse response) {
         String tradeId = response.getTradeId();
         boolean accepted = response.isAccepted();
@@ -124,9 +152,24 @@ public class ServerConnectionHandler {
             return false;
         }
 
+        String initiator = trade.getString("initiator");
+        String recipient = trade.getString("recipient");
+
+        // update trade status 
         tradeDatabase.updateTradeStatus(tradeId, accepted ? "accepted" : "rejected");
 
-        String initiator = trade.getString("initiator");
+        // log result
+        if (accepted) {
+            TradeLogger.getInstance().logTradeAcceptance(tradeId, initiator, recipient);
+        } else {
+            TradeLogger.getInstance().logTradeRejection(tradeId, initiator, recipient);
+        }
+
+        // execute the trade 
+        if (accepted) {
+            executeTradeTransaction(tradeId);
+        }
+
         ClientHandler initiatorHandler = clients.get(initiator);
         if (initiatorHandler != null) {
             initiatorHandler.sendMessage(response);
@@ -134,6 +177,11 @@ public class ServerConnectionHandler {
         return true; 
     }
 
+    /**
+     * 
+     * @param packRequest
+     * @return
+     */
     public JSONArray handlePackRequest(PackRequest packRequest) {
         HashMap<String, Card> cardsMap = new HashMap<>();
         JSONArray cardArray = null;
@@ -186,14 +234,112 @@ public class ServerConnectionHandler {
         return cardPack;
     }
 
+    /**
+     * handles th card transfer 
+     * @param tradeId - id of the specifc trade
+     */
+    private synchronized void executeTradeTransaction(String tradeId) {
+
+        JSONObject trade = tradeDatabase.getTrade(tradeId);
+        if (trade == null || !"accepted".equals(trade.getString("status"))) {
+            return;
+        }
+
+        String initiator = trade.getString("initiator");
+        String recipient = trade.getString("recipient");
+        JSONArray offeredCards = trade.getArray("offeredCards");
+
+        try {
+
+            // added to help with debuggin duplication issues, kept because of convenience 
+            int cardsBefore = userCardsDatabase.countTotalCards();
+
+            // start transaction
+            // get current collections 
+            JSONArray initiatorCollection = new JSONArray();
+            JSONArray recipientCollection = new JSONArray();
+            
+            // create new collections 
+            JSONArray newInitiatorCollection = new JSONArray();
+            JSONArray cardsToTransfer = new JSONArray();
+
+            // identify cards to keep and transfer 
+            for (int i = 0; i < initiatorCollection.size(); i++) {
+                JSONObject card = (JSONObject) initiatorCollection.get(i);
+                boolean shouldTransfer = false; 
+
+                for (int j = 0; j < offeredCards.size(); j++) {
+                    JSONObject offeredCard = (JSONObject) offeredCards.get(j);
+                    if (card.getString("cardID").equals(offeredCard.getString("cardID"))) {
+                        shouldTransfer = true;
+                        cardsToTransfer.add(deepCopyJSONObject(card));
+                        break; 
+                    }
+                }
+
+                if (!shouldTransfer) {
+                    newInitiatorCollection.add(deepCopyJSONObject(card));
+                } 
+            }
+
+                // verfiy all cards were found 
+            if (cardsToTransfer.size() != offeredCards.size()) {
+                throw new InvalidObjectException("Not all cards found in initiator's collection");
+            }
+
+            // create new collections atomically 
+            userCardsDatabase.replaceUserCards(initiator, newInitiatorCollection);
+            userCardsDatabase.addCards(recipient, cardsToTransfer);
+
+            // complete transaction
+            tradeDatabase.updateTradeStatus(tradeId, "completed");
+
+            int cardsAfter = userCardsDatabase.countTotalCards();
+            if (cardsAfter != cardsBefore) {
+                throw new InvalidObjectException("Card count mismatch before and after trade");
+            }
+
+        } catch (Exception e) {
+            tradeDatabase.updateTradeStatus(tradeId, "failed");
+            TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, e.getMessage());
+        }
+    }
+
+    /**
+     * Helper method for deep copying JSONObjects
+     * @param original
+     * @return
+     */
+    private JSONObject deepCopyJSONObject(JSONObject original) {
+        JSONObject copy = new JSONObject();
+        for (String key : original.keySet()) {
+            copy.put(key, original.get(key));
+        }
+        return copy; 
+    } 
+
+    /**
+     * 
+     * @param username
+     * @param clientHandler
+     */
     public void addClient(String username, ClientHandler clientHandler) {
         clients.put(username, clientHandler);
     }
 
+    /**
+     * 
+     * @param username
+     */
     public void removeClient(String username) {
         clients.remove(username);
     }
 
+    /**
+     * 
+     * @param collectionRequest
+     * @return
+     */
     public JSONArray handleCollectionRequest(CollectionRequest collectionRequest) {
         JSONArray collection = new JSONArray();
         try {
@@ -202,5 +348,25 @@ public class ServerConnectionHandler {
             System.err.println("Error retrieving user cards: " + e.getMessage());
         }
         return collection;
+    }
+
+    /**
+     * Helper method to remove cards during the trade process
+     * @param username
+     * @param cards
+     * @throws InvalidObjectException
+     */
+    private void removeCardsFromUser(String username, JSONArray cards) throws InvalidObjectException {
+        userCardsDatabase.removeCards(username, cards);
+    }
+
+    /**
+     * Helper method to add cards during the trade process
+     * @param username
+     * @param cards
+     * @throws InvalidObjectException
+     */
+    private void addCardsToUser(String username, JSONArray cards) throws InvalidObjectException {
+        userCardsDatabase.addCards(username, cards);
     }
 }
