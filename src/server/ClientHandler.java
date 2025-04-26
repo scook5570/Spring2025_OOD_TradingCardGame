@@ -2,22 +2,25 @@ package server;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.concurrent.ConcurrentHashMap; // description in ServerConnectionHandler
 
 import merrimackutil.json.types.JSONArray;
+import merrimackutil.json.types.JSONObject;
 import shared.MessageSocket;
 import shared.messages.*;
 
 /**
- * 
+ * Handles client operations 
  */
 public class ClientHandler implements Runnable {
     private Socket socket;
     private MessageSocket msgSocket;
     private ServerConnectionHandler server;
     private String username;
+    private ConcurrentHashMap<String, Long> pendingTradeResponses = new ConcurrentHashMap<>();
 
     /**
-     * 
+     * constructor 
      * @param socket
      * @param server
      */
@@ -32,20 +35,47 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    /**
-     * 
-     */
+   /**
+    * runs the client side with better trade handling 
+    */
     @Override
     public void run() {
         try {
 
             while (!socket.isClosed()) {
 
-                Message recvMsg;
-                // Receive the message from the client
-                recvMsg = msgSocket.getMessage();
+                Message recvMsg = msgSocket.getMessage();
+    
+                if (recvMsg instanceof TradeInitiateRequest) {
+                    try {
+                        TradeInitiateRequest tradeRequest = (TradeInitiateRequest) recvMsg;
+                        String tradeId = server.handleTradeInitiation(tradeRequest);
 
-                if (recvMsg instanceof UserCredRequest) {
+                        if (tradeId != null) {
+                            pendingTradeResponses.put(tradeId, System.currentTimeMillis());
+                            System.out.println("Trade initiated successfully, waiting for response...");
+                        } else {
+                            TradeResponse errorResponse = new TradeResponse("error", false, tradeRequest.getSenderUsername());
+                            sendMessage(errorResponse);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("error handling trade request: " + e.getMessage());
+                    }
+                } else if (recvMsg instanceof TradeResponse) {
+                    try {
+                        TradeResponse tradeResponse = (TradeResponse) recvMsg;
+                        boolean success = server.handleTradeResponse(tradeResponse);
+
+                        if (!success) {
+                            System.err.println("Failed to process trade response for trade ID: " + tradeResponse.getTradeId());
+                        }
+
+                        // remove from pending responses
+                        pendingTradeResponses.remove(tradeResponse.getTradeId());
+                    } catch (Exception e) {
+                        System.err.println("Error handling trade response: " + e.getMessage());
+                    }
+                } else if (recvMsg instanceof UserCredRequest) {
                     UserCredRequest userCredRequest = (UserCredRequest) recvMsg;
                     switch (recvMsg.getType()) {
                         case "Login":
@@ -100,13 +130,11 @@ public class ClientHandler implements Runnable {
                     }
                 } else if (recvMsg instanceof CollectionResponse) {
                     System.out.println("ClientHandler.java, line 86: Collection Response handling not yet specified");
-        // Handle CollectionResponse if needed
                 } else if (recvMsg instanceof TradeInitiateRequest) {
                     TradeInitiateRequest tradeRequest = (TradeInitiateRequest) recvMsg;
                     String tradeId = server.handleTradeInitiation(tradeRequest);
                     if (tradeId != null) {
-        // maybe add a trade id number to specify which trade is waiting for a response
-                        System.out.println("Trade initiated successfully, waiting for response");
+                        System.out.println("Trade initiated successfully, trade ID: " + tradeId + " waiting for response");
                     }
                 } else if (recvMsg instanceof TradeResponse) {
                     TradeResponse tradeResponse = (TradeResponse) recvMsg;
@@ -117,8 +145,31 @@ public class ClientHandler implements Runnable {
             }
         } catch (Exception e) {
             System.err.println("Connection closed: " + e.getMessage());
-            if (this.username != null) { // remove the client from the server's client map 
+        } finally {
+            
+            if (this.username != null) { // cleanup code for when the connection ends
                 server.removeClient(this.username);
+
+                // cancel any pending trades when the usr disconnects (lmk if you want to add functionality to be able to complete trades even if the user is offline)
+                for (String tradeId : pendingTradeResponses.keySet()) {
+                    try {
+                        JSONObject trade = server.tradeDatabase.getTrade(tradeId);
+                        if (trade != null && "pending".equals(trade.getString("status"))) {
+                            server.tradeDatabase.updateTradeStatus(tradeId, "cencelled");
+                        }
+
+                        // notify the other party 
+                        String otherUsername = this.username.equals(trade.getString("initiator")) ? trade.getString("recipient") : trade.getString("initiator");
+                        ClientHandler otherHandler = server.clients.get(otherUsername);
+
+                        if (otherHandler != null) {
+                            TradeResponse cancelResponse = new TradeResponse(tradeId, false, this.username);
+                            otherHandler.sendMessage(cancelResponse);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("error cancelling trade on disconnect: " + e.getMessage());
+                    }
+                }
             }
         }
     }

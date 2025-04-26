@@ -4,8 +4,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import java.text.SimpleDateFormat;
+
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import java.util.concurrent.locks.ReentrantLock;
 
 import merrimackutil.json.types.JSONArray;
@@ -20,8 +24,16 @@ public class TradeLogger {
     private final ReentrantLock lock = new ReentrantLock();
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
+    private AtomicInteger totalTrades = new AtomicInteger(0);
+    private AtomicInteger successfulTrades = new AtomicInteger(0);
+    private AtomicInteger failedTrades = new AtomicInteger(0);
+    /** AtomicInteger
+     * thread safe version of an integer, no half changes or race conditions
+     */
+
+
     /**
-     * 
+     * constructor 
      */
     private TradeLogger() {
         // create logs directory if it doesn't exits
@@ -45,6 +57,14 @@ public class TradeLogger {
     }
 
     /**
+     * get transaction statistics 
+     * @return
+     */
+    public synchronized String getTradeStatistics() {
+        return String.format("Trade Statistics - Total: %d, Successful: %d, Failed: %d", totalTrades.get(), successfulTrades.get(), failedTrades.get());
+    }
+
+    /**
      * get the singleton instance of the logger
      * @return
      */
@@ -64,6 +84,7 @@ public class TradeLogger {
      * @param cards
      */
     public void logTradeCreation(String tradeId, String initiator, String recipient, JSONArray cards) {
+        totalTrades.incrementAndGet();
         String cardCount = cards != null ? String.valueOf(cards.size()) : "0";
         log("CREATION", tradeId, initiator, recipient, "pending", "Offered " + cardCount + " cards");
     }
@@ -96,6 +117,7 @@ public class TradeLogger {
      * @param errorMsg
      */
     public void logTradeCompletion(String tradeId, String initiator, String recipient) {
+        successfulTrades.incrementAndGet();
         log("COMPLETION", tradeId, initiator, recipient, "completed", "Cards transferred succesfully");
     }
 
@@ -107,6 +129,7 @@ public class TradeLogger {
      * @param errorMsg
      */
     public void logTradeFailure(String tradeId, String initiator, String recipient, String errorMsg) {
+        failedTrades.incrementAndGet();
         log("FAILED", tradeId, initiator, recipient, "failed", "Error: " + errorMsg);
     }
 

@@ -2,8 +2,11 @@ package server;
 
 import java.io.File;
 import java.io.InvalidObjectException;
+
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock; // description in TradeDatabase.java
+import java.util.Set;
+import java.util.HashSet;
 
 import merrimackutil.json.JSONSerializable;
 import merrimackutil.json.JsonIO;
@@ -192,12 +195,20 @@ public class UserCardsDatabase implements JSONSerializable {
     public synchronized boolean exchangeCards(String fromUser, String toUser, JSONArray cardsToExchange) {
         rwLock.writeLock().lock();
 
+        JSONArray originalFromUserCards = null;
+        JSONArray originalToUserCards = null;        
+
         try {
+            int initialCardCount = countTotalCards();
 
             // validate that the users exist
             if (!cards.containsKey(fromUser) || !cards.containsKey(toUser)) {
                 return false; 
             }
+
+            // deep copy of original collections
+            originalFromUserCards = deepCopyCardArray(cards.get(fromUser));
+            originalToUserCards = deepCopyCardArray(cards.get(toUser));
 
             // validate all cards exist in fromUser's collection
             JSONArray fromUserCards = cards.get(fromUser);
@@ -230,7 +241,7 @@ public class UserCardsDatabase implements JSONSerializable {
                 for (int j = 0; j < cardsToExchange.size(); j++) {
                     JSONObject exchangeCard = (JSONObject) cardsToExchange.get(j);
                     if (userCard.getString("cardID").equals(exchangeCard.getString("cardID"))) {
-                        shouldKeep = true;
+                        shouldKeep = false;
                         break; 
                     }
                 }
@@ -241,22 +252,62 @@ public class UserCardsDatabase implements JSONSerializable {
             }
 
             // add cards to recipient's collection
-            JSONArray toUserCards = cards.get(toUser);
+            JSONArray newToUserCards = cards.get(toUser);
             for (int i = 0; i < cardsToExchange.size(); i++) {
-                toUserCards.add(deepCopyCard((JSONObject) cardsToExchange.get(i)));
+                newToUserCards.add(deepCopyCard((JSONObject) cardsToExchange.get(i)));
             }
 
-            // commit changes
+            // update both collections atomically 
             cards.put(fromUser, newFromUserCards);
+            cards.put(toUser, newToUserCards);
+        
+            // checking for duplicates
+            if (!validateCardUniqueness()) {
+                // rollback if validation fails
+                cards.put(fromUser, originalFromUserCards);
+                cards.put(toUser, originalToUserCards);
+                System.err.println("Transaction validation failed: Duplicate cards detected");
+                return false; 
+            }
+            
+            // verify transaction integrity 
+            int finalCardCount = countTotalCards();
+            if (finalCardCount != initialCardCount) {
+                // card count mismatch - rollback and fail
+                cards.put(fromUser, originalFromUserCards);
+                cards.put(toUser, originalToUserCards);
+                System.err.println("Transaction validation failed: Card count mismatch - Before: " + initialCardCount + ", After: " + finalCardCount);
+                return false; 
+            }            
+
+            // save only after validations pass
             save();
             return true; 
-
         } catch (Exception e) {
+
+            if (originalFromUserCards != null && originalToUserCards != null) {
+                cards.put(fromUser, originalFromUserCards);
+                cards.put(toUser, originalToUserCards);
+            }
+
             System.err.println("Transaction failed: " + e.getMessage());
             return false; 
         } finally {
             rwLock.writeLock().unlock();
         }
+    }
+
+    /**
+     * helper method : creates a deep copy of a card array
+     * @param original
+     * @return
+     */
+    private JSONArray deepCopyCardArray(JSONArray original) {
+        JSONArray copy = new JSONArray();
+        for (int i = 0; i < original.size(); i++) {
+            copy.add(deepCopyCard((JSONObject) original.get(i)));
+        }
+        return copy; 
     }
 
     /**
@@ -270,6 +321,28 @@ public class UserCardsDatabase implements JSONSerializable {
             copy.put(key, original.get(key));
         }
         return copy;
+    }
+
+    private boolean validateCardUniqueness() {
+        // create a set to track all card IDs
+        Set<String> allCardIds = new HashSet<>();
+
+        // check each user's collection
+        for (String username : cards.keySet()) {
+            JSONArray userCards = cards.get(username);
+            for (int i = 0; i < userCards.size(); i++) {
+                JSONObject card = (JSONObject) userCards.get(i);
+                String cardId = card.getString("cardID");
+
+                // if we've seen this card before it's a duplicate
+                if (allCardIds.contains(cardId)) {
+                    return false;
+                }
+
+                allCardIds.add(cardId);
+            }
+        }
+        return true; 
     }
 
     /**
@@ -331,6 +404,19 @@ public class UserCardsDatabase implements JSONSerializable {
         }
         cards.put(username, newCards);
         save();
+    }
+
+    /**
+     * retrieves all the usernames in the database
+     * @return
+     */
+    public Set<String> getAllUsernames() {
+        rwLock.readLock().lock();
+        try {
+            return new HashSet<>(cards.keySet());
+        } finally {
+            rwLock.readLock().unlock();
+        }
     }
 
     /**

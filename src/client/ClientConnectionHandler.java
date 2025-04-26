@@ -5,9 +5,20 @@ import java.io.IOException;
 import java.net.Socket;
 
 import java.util.concurrent.CompletableFuture;
+/** CompletableFuture
+ * - allows tasks to be completed in the background without holding up the code
+ * - can execute multiple tasks in sequence in the background 
+ */
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+/** ScheduledExecutorService 
+ * - provides the ability to schedule certain tasks (i.e "do this in 5 seconds")
+ * - can make tasks execute periodically 
+ */
 import java.util.concurrent.Executors; 
+/** Executors 
+ * provides the ability to manage tasks given to it by utlizing a set amount of threads  
+ */
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -40,13 +51,6 @@ public class ClientConnectionHandler {
     //Thread management 
     private Thread receiverThread;
     private ScheduledExecutorService executorService; 
-
-    // Callbacks for different message types 
-    // private Consumer<UserCredResponse> loginCallback; 
-    // private Consumer<PackResponse> packCallback;
-    // private Consumer<CollectionResponse> collectionCallback;
-    // private Consumer<TradeOfferNotification> tradeOfferCallback;
-    // private Consumer<TradeResponse> tradeResponseCallback;
     
     private final ConcurrentHashMap<String, 
                   CompletableFuture<String>> pendingTrades = new ConcurrentHashMap<>();

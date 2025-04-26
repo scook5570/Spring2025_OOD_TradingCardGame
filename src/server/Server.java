@@ -16,17 +16,35 @@ public class Server {
         UserCardsDatabase userCardsDatabase = new UserCardsDatabase(new File("src/server/databases/usercards.json"));
         TradeDatabase tradeDatabase = new TradeDatabase(new File("src/server/databases/trades.json"));
 
+        ServerConnectionHandler handler = new ServerConnectionHandler();
+
         // schedule trade cleanup task
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(() -> {
+
+            
+
             try {
                 tradeDatabase.cleanupStaleTrades(30000); // 30 seconds
             } catch (Exception e) {
                 System.err.println("Error during trade cleanup: " + e.getMessage());
             }
         }, 30, 30, TimeUnit.SECONDS); // run every 30 seconds
+        
+        // schedule database integrity check
+        scheduler.scheduleAtFixedRate(() -> {
+        try {
+                boolean isConsistent = handler.validateDatabaseIntegrity();
+                if (isConsistent) {
+                    System.out.println("Database integrity check: PASSED");
+                } else {
+                    System.err.println("WARNING Database integrity failed");
+                }
+            } catch (Exception e) {
+                System.err.println("Error durign database integrity check: " + e.getMessage());
+            }
+        }, 60, 60, TimeUnit.SECONDS); // run every minute 
 
-        ServerConnectionHandler handler = new ServerConnectionHandler();
         handler.start(5100, userCreds, userCardsDatabase, tradeDatabase); // or get port from args
 
         // shutdown hook to clean up resources when server is stopped

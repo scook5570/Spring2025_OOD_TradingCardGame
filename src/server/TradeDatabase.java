@@ -2,10 +2,16 @@ package server;
 
 import java.io.File;
 import java.io.InvalidObjectException;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 /** ReentrantReadWriteLock
  * - one person can write at a time
@@ -30,6 +36,9 @@ public class TradeDatabase implements JSONSerializable {
     // read-write lock for better concurrency
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Object fileLock = new Object();
+    private final Set<String> cardsInActiveExchange = new HashSet<>();
+    private final Map<String, String> cardToTradeMap = new ConcurrentHashMap<>();
+    private final Object cardLockObject = new Object();
 
     /**
      * constructor 
@@ -57,6 +66,73 @@ public class TradeDatabase implements JSONSerializable {
         } catch (Exception e) {
             System.err.println("Error reading trades file: " + e.getMessage());
             pendingTrades = new HashMap<>();
+        }
+    }
+
+    /**
+     * locks cards by adding them to a dedicated set to prevent race conditions 
+     * @param cards
+     * @return
+     */
+    public boolean lockCardsForTrade(JSONArray cards, String tradeId) {
+        synchronized(cardLockObject) {
+            // check if any card is already being exchanged
+            for (int i = 0; i < cards.size(); i++) {
+                JSONObject card = (JSONObject) cards.get(i);
+                String cardId = card.getString("cardID");
+
+                if (cardsInActiveExchange.contains(cardId)) {
+                    // check if the card is locked by the same trade
+                    String lockingTradeId = cardToTradeMap.get(cardId);
+                    if (lockingTradeId != null && !lockingTradeId.equals(tradeId)) {
+                        System.out.println("Card " + cardId + " is already locked by trade " + lockingTradeId);
+                        return false; // cards are already locked
+                    }
+                }
+            }
+
+            // if we get here, cards are good, lock em by adding them to the set 
+            for (int i = 0; i < cards.size(); i++) {
+                JSONObject card = (JSONObject) cards.get(i);
+                String cardId = card.getString("cardID");
+
+                cardsInActiveExchange.add(cardId);
+                cardToTradeMap.put(cardId, tradeId);
+            }
+            return true; 
+        }
+    }
+
+    /**
+     * unlocks cards by taking them out of the dedicated set mentioned in lockCardsForTrade (above)
+     * @param cards
+     */
+    public void unlockCards(JSONArray cards) {
+        synchronized(cardLockObject) {
+            for (int i = 0; i < cards.size(); i++) {
+                JSONObject card = (JSONObject) cards.get(i);
+                String cardId = card.getString("cardID");
+                cardsInActiveExchange.remove(cardId);
+                cardToTradeMap.remove(cardId);
+            }
+        }
+    }
+
+    public void unlockCardsForTrade(String tradeId) {
+        synchronized(cardLockObject) {
+            // find all cards locked by this trade
+            List<String> cardsToUnlock = new ArrayList<>();
+            for (Map.Entry<String, String> entry : cardToTradeMap.entrySet()) {
+                if (entry.getValue().equals(tradeId)) {
+                    cardsToUnlock.add(entry.getKey());
+                }
+            }
+
+            // unlock the cards
+            for (String cardId : cardsToUnlock) {
+                cardsInActiveExchange.remove(cardId);
+                cardToTradeMap.remove(cardId);
+            }
         }
     }
 
