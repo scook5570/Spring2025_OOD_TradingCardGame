@@ -27,7 +27,9 @@ public class CollectionWindow extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // Sets the frame the full screen size
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        Rectangle rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        setBounds(rect);
+
         // Makes it none rezisable after its adjusted to not overtake the tool bar
         addComponentListener(new ComponentAdapter() {
             @Override
@@ -128,10 +130,10 @@ public class CollectionWindow extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         add(bottomPanel, gbc);
 
-        setVisible(true);
         // Had to set size after settting visible to get get frame width and height
         // other wise it thinks its 0
-        collectionScrollPane.setPreferredSize(new Dimension((int) (getWidth() * 0.7), (int) (getHeight() * 0.7)));
+        collectionScrollPane.setPreferredSize(new Dimension((int) (rect.width * 0.7), (int) (rect.height * 0.7)));
+        setVisible(true);
     }
 
     private void addCards() {
