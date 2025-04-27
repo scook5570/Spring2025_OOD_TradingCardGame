@@ -31,6 +31,8 @@ public class TradeLogger {
      * thread safe version of an integer, no half changes or race conditions
      */
 
+     private boolean verboseLogging = true; // set to true for detailed transaction
+
 
     /**
      * constructor 
@@ -87,6 +89,18 @@ public class TradeLogger {
         totalTrades.incrementAndGet();
         String cardCount = cards != null ? String.valueOf(cards.size()) : "0";
         log("CREATION", tradeId, initiator, recipient, "pending", "Offered " + cardCount + " cards");
+
+        // log detailde card information if verbose loggind is enabled
+        if (verboseLogging && cards != null) {
+            StringBuilder cardDetails = new StringBuilder("Cards offered: ");
+            for (int i = 0; i < cards.size(); i++) {
+                if (i > 0) {
+                    cardDetails.append(", ");
+                }
+                cardDetails.append(cards.getObject(i).getString("cardID"));
+            }
+            log(tradeId, "CARDS_OFFERED", initiator, recipient, "pending", cardDetails.toString());
+        }
     }
 
     /**
@@ -97,6 +111,21 @@ public class TradeLogger {
      */
     public void logTradeAcceptance(String tradeId, String initiator, String recipient) {
         log("ACCEPTANCE", tradeId, initiator, recipient, "accepted", "Trade accepted by recipient");
+
+        // log transaction start for debuggingn race conditions
+        if (verboseLogging) {
+            log(tradeId, "TRANSACTION_START", initiator, recipient, "processing", "Beginning card transfer transaction");
+        }
+    }
+
+    /**
+     * log trade rejection : overloaded without reason
+     * @param tradeId
+     * @param initiator
+     * @param recipient
+     */
+    public void logTradeRejection(String tradeId, String initiator, String recipient) {
+        logTradeRejection(tradeId, initiator, recipient, null);
     }
 
     /**
@@ -105,8 +134,14 @@ public class TradeLogger {
      * @param initiator
      * @param recipient
      */
-    public void logTradeRejection(String tradeId, String initiator, String recipient) {
-        log("REJECTION", tradeId, initiator, recipient, "rejected", "Trade rejected by recipient");
+    public void logTradeRejection(String tradeId, String initiator, String recipient, String reason) {
+        
+        String details = "Trade rejected by recipient";
+        if (reason != null && !reason.isEmpty()) {
+            details += ": " + reason;
+        }
+        
+        log("REJECTION", tradeId, initiator, recipient, "rejected", details);
     }
 
     /**
@@ -118,6 +153,12 @@ public class TradeLogger {
      */
     public void logTradeCompletion(String tradeId, String initiator, String recipient) {
         successfulTrades.incrementAndGet();
+    
+        // log transaction completion for debugging
+        if (verboseLogging) {
+            log(tradeId, "TRANSACTION_END", initiator, recipient, "completed", "Card transfer transaction successful");
+        }
+
         log("COMPLETION", tradeId, initiator, recipient, "completed", "Cards transferred succesfully");
     }
 
@@ -128,9 +169,39 @@ public class TradeLogger {
      * @param recipient
      * @param errorMsg
      */
-    public void logTradeFailure(String tradeId, String initiator, String recipient, String errorMsg) {
+    public void logTradeFailure(String tradeId, String initiator, String recipient, String errorMsg, Throwable exception) {
         failedTrades.incrementAndGet();
+
+        // first log the basic error 
         log("FAILED", tradeId, initiator, recipient, "failed", "Error: " + errorMsg);
+
+        // if exception details are available and vebose logging is enabled, log stack trace
+        if (verboseLogging && exception != null) {
+            StringBuilder stackTrace = new StringBuilder();
+            stackTrace.append(exception.getClass().getName()).append(": ").append(exception.getMessage()).append("\n");
+
+            for (StackTraceElement element : exception.getStackTrace()) {
+                stackTrace.append("    at ").append(element.toString()).append("\n");
+
+                // limit stack trace depth to keep logs manageable
+                if (stackTrace.length() > 500) {
+                    stackTrace.append("    ... (truncated)\n");
+                    break;
+                }
+            }
+            log(tradeId, "EXCPTION", initiator, recipient, "failed", stackTrace.toString());
+        }
+    }
+
+    /**
+     * log trade failure (overloaded without exception)
+     * @param tradeId
+     * @param initiator
+     * @param recipient
+     * @param errorMsg
+     */
+    public void logTradeFailure(String tradeId, String initiator, String recipient, String errorMsg) {
+        logTradeFailure(tradeId, initiator, recipient, errorMsg, null);
     }
 
     /**
@@ -152,7 +223,28 @@ public class TradeLogger {
      * @param cardName
      */
     public void logCardTransfer(String tradeId, String from, String to, String cardId, String cardName) {
-        log("CARD_TRANSFER", tradeId, from, to, "transfering", "Card" + cardId + " (" + cardName + ")");
+        log("CARD_TRANSFER", tradeId, from, to, "transfering", "Card" + cardId + " (" + cardName + ") transferred from " + from + " to " + to);
+    }
+
+    /**
+     * lof database validation operations for integrity checks 
+     * @param tradeId
+     * @param details
+     * @param passed
+     */
+    public void logDatabaseValidation(String tradeId, String details, boolean passed) {
+        log(tradeId, "DB_VALIDATION", "system", "system", passed ? "valid" : "invalid", details);
+    }
+
+    /**
+     * log concurrent access attempts for debugging race conditions
+     * @param tradeId
+     * @param username
+     * @param operation
+     * @param successful
+     */
+    public void logConcurrentAccess(String tradeId, String username, String operation, boolean successful) {
+        log(tradeId, "CONCURRENCY", username, "system", successful ? "acquired" : "blocked", "Thread " + Thread.currentThread().threadId() + " " + (successful ? "acquired" : "blokced from acquiring") + " access for " + operation);
     }
 
     /**
@@ -178,6 +270,16 @@ public class TradeLogger {
             sb.append(details);
 
             writer.println(sb.toString());
+
+            // for multi-line details liek stack traces
+            if (details.contains("\n")) {
+                String[] lines = details.split("\n"); 
+                for (int i = 1; i < lines.length; i++) {
+                    writer.println("   " + lines[i]);
+                }
+                writer.println("------------------------------------");
+            }
+
         } catch (IOException e) {
             System.err.println("Failed to write to log file: " + e.getMessage());
         } finally {

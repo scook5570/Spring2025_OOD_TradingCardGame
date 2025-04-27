@@ -76,30 +76,30 @@ public class TradeDatabase implements JSONSerializable {
      */
     public boolean lockCardsForTrade(JSONArray cards, String tradeId) {
         synchronized(cardLockObject) {
-            // first pass: check if any card is locked (already being exchanged)
+            // First pass: check if any card is locked (already being exchanged)
             for (int i = 0; i < cards.size(); i++) {
                 JSONObject card = (JSONObject) cards.get(i);
                 String cardId = card.getString("cardID");
-
+    
                 if (cardsInActiveExchange.contains(cardId)) {
-                    String lockingTradeId  = cardToTradeMap.get(cardId);
+                    String lockingTradeId = cardToTradeMap.get(cardId);
                     
-                    // check if the card is locked by the same trade
+                    // check if the card is locked by a different trade
                     if (lockingTradeId != null && !lockingTradeId.equals(tradeId)) {
                         System.out.println("Card " + cardId + " is already locked by trade " + lockingTradeId);
                         return false; // cards are already locked
                     }
                 }
             }
-
+    
             // second pass: lock all cards atomically 
             for (int i = 0; i < cards.size(); i++) {
                 JSONObject card = (JSONObject) cards.get(i);
                 String cardId = card.getString("cardID");
-
+    
                 cardsInActiveExchange.add(cardId);
                 cardToTradeMap.put(cardId, tradeId);
-                System.out.println("Card" + cardId + " locked for trade " + tradeId);
+                System.out.println("Card " + cardId + " locked for trade " + tradeId);
             }
             return true; 
         }
@@ -157,13 +157,25 @@ public class TradeDatabase implements JSONSerializable {
         trade.put("offeredCards", offeredCards);
         trade.put("status", "pending");
         trade.put("timestamp", System.currentTimeMillis());
+        trade.put("transactionId", UUID.randomUUID().toString()); // additional id for transaction tracing
 
         // add to the database with lock protection
         rwLock.writeLock().lock();
         try {
+
+            // in the extremely unlikely case that the UUID already exists, generate a new one
+            while (pendingTrades.containsKey(tradeId)) {
+                tradeId = UUID.randomUUID().toString();
+                trade.put("tradeId", tradeId);
+            }
+
             pendingTrades.put(tradeId, trade);
             save();
+
+            // log the trade creation with detailed information
+            TradeLogger.getInstance().logTradeCreation(tradeId, initiator, recipient, offeredCards);
             return tradeId;
+
         } finally {
             rwLock.writeLock().unlock();
         }

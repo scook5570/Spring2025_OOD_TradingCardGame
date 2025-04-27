@@ -9,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
  * - allows tasks to be completed in the background without holding up the code
  * - can execute multiple tasks in sequence in the background 
  */
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 /** ScheduledExecutorService 
  * - provides the ability to schedule certain tasks (i.e "do this in 5 seconds")
@@ -52,9 +51,6 @@ public class ClientConnectionHandler {
     private Thread receiverThread;
     private ScheduledExecutorService executorService; 
     
-    private final ConcurrentHashMap<String, 
-                  CompletableFuture<String>> pendingTrades = new ConcurrentHashMap<>();
-
     //Regular expressrion for validating username and password 
     private static final Pattern VALID_CREDENTIALS = Pattern.compile("[a-zA-Z0-9_]{3,16}$");
 

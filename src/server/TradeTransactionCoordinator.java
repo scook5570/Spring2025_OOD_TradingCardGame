@@ -3,7 +3,6 @@ package server;
 import merrimackutil.json.types.JSONObject;
 import merrimackutil.json.types.JSONArray;
 
-import java.io.InvalidObjectException;
 import java.util.HashSet; 
 import java.util.Set; 
 
@@ -13,7 +12,6 @@ import java.util.Set;
  */
 public class TradeTransactionCoordinator {
     private static TradeTransactionCoordinator instance; 
-    private final Object globalTradeLock = new Object();
 
     private TradeTransactionCoordinator() {}
 
@@ -25,115 +23,93 @@ public class TradeTransactionCoordinator {
     }
 
     public boolean executeTradeTransaction(String tradeId, TradeDatabase tradeDB, UserCardsDatabase userCardsDB) {
-        // global trae lock for this specific trade 
-        synchronized(globalTradeLock) {
-            // step 1: get and validate trade details
-            JSONObject trade = tradeDB.getTrade(tradeId);
-            if (trade == null) {
-                System.err.println("Trade " + tradeId + " not found");
-                return false; 
-            }
-
-            if (!"accepted".equals(trade.getString("status"))) {
-                System.err.println("Trade " + tradeId + " is not in accepted state");
-                return false; 
-            }
-
-            String initiator = trade.getString("initiator");
-            String recipient = trade.getString("recipient");
-            JSONArray offeredCards = trade.getArray("offeredCards");
-
-            // step 2: lock all cards for this trade to prevent race conditions
-            if (!tradeDB.lockCardsForTrade(offeredCards, tradeId)) {
-                tradeDB.updateTradeStatus(tradeId, "failed");
-                TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "Failed to lock cards - cards may be invloved in another trade");
-                return false; 
-            } 
-
-            try {
-
-                // step 3: verify that both users still exist
-                try {
-                    userCardsDB.getUserCards(initiator);
-                    userCardsDB.getUserCards(recipient);
-                } catch (InvalidObjectException e) {
+        JSONObject trade = null;
+        String initiator = null;
+        String recipient = null;
+        JSONArray offeredCards = null;
+        
+        // Step 1: Get trade details (outside synchronized block to minimize lock time)
+        trade = tradeDB.getTrade(tradeId);
+        if (trade == null || !"accepted".equals(trade.getString("status"))) {
+            return false;
+        }
+        
+        initiator = trade.getString("initiator");
+        recipient = trade.getString("recipient");
+        offeredCards = trade.getArray("offeredCards");
+        
+        // Step 2: Create a set of card IDs for locking
+        Set<String> cardIds = new HashSet<>();
+        for (int i = 0; i < offeredCards.size(); i++) {
+            JSONObject card = (JSONObject) offeredCards.get(i);
+            cardIds.add(card.getString("cardID"));
+        }
+        
+        // Step 3: Acquire locks on all involved cards atomically
+        if (!CardLockManager.getInstance().acquireLocks(cardIds, tradeId)) {
+            tradeDB.updateTradeStatus(tradeId, "failed");
+            TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, 
+                    "Failed to lock cards - cards may be involved in another trade");
+            return false;
+        }
+        
+        try {
+            // Step 4: Use a synchronized block to ensure atomicity across databases
+            synchronized(this) {
+                // Verify card ownership AGAIN right before exchange - critical step!
+                if (!verifyCardsForTrade(initiator, offeredCards, userCardsDB)) {
                     tradeDB.updateTradeStatus(tradeId, "failed");
-                    TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "User no longer exists: " + e.getMessage());
-                    return false; 
-                }
-
-                // step 4: verify initiator still owns all cards being offered 
-                boolean verificationPassed = verifyCardOwnership(userCardsDB, recipient, offeredCards);
-                if (!verificationPassed) {
-                    tradeDB.updateTradeStatus(tradeId, "failed");
-                    TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "Initiator no longer owns all offered cards");
+                    TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, 
+                            "Cards no longer available for trade");
                     return false;
                 }
-
-                // step 5: execute the actual card exchange as an atomis operation
+                
+                // Perform card exchange with database write lock
                 boolean success = userCardsDB.exchangeCards(initiator, recipient, offeredCards);
-
+                
                 if (success) {
-                    // step 6: update trade status to completed 
-                    tradeDB.updateTradeStatus(tradeId, "comleted");
+                    tradeDB.updateTradeStatus(tradeId, "completed");
                     TradeLogger.getInstance().logTradeCompletion(tradeId, initiator, recipient);
-                    
-                    // step 7: log individual card transfers for audit purposes
-                    for (int i = 0; i < offeredCards.size(); i++) {
-                        JSONObject card = (JSONObject) offeredCards.get(i);
-                        TradeLogger.getInstance().logCardTransfer(tradeId, initiator, recipient, card.getString("cardID"), card.getString("name"));
-                    }
                     return true;
                 } else {
                     tradeDB.updateTradeStatus(tradeId, "failed");
-                    TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "Card exchange failed");
-                    return false; 
-                }
-            } catch (Exception e) {
-                tradeDB.updateTradeStatus(tradeId, "failed");
-                TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, e.getMessage());
-                return false;
-            } finally {
-                // always unlock cards regardless of success/failure 
-                tradeDB.unlockCardsForTrade(tradeId);
-            }
-
-        }
-    }
-
-    /**
-     * verifies that a user still owns all card in a trade offer
-     * @param userCardsDB
-     * @param username
-     * @param offeredCards
-     * @return
-     */
-    private boolean verifyCardOwnership(UserCardsDatabase userCardsDB, String username, JSONArray offeredCards) {
-        try {
-            JSONArray userCards = userCardsDB.getUserCards(username);
-            Set<String> userCardIds = new HashSet<>();
-
-            // create a set of all card IDs owned by the user
-            for (int i = 0; i < userCards.size(); i++) {
-                JSONObject card = (JSONObject) userCards.get(i);
-                userCardIds.add(card.getString("cardID"));
-            }
-
-            // check if all offered cards are in the user's collection
-            for (int i = 0; i < offeredCards.size(); i++) {
-                JSONObject offeredCard = (JSONObject) offeredCards.get(i);
-                String cardId = offeredCard.getString("cardID");
-
-                if (!userCardIds.contains(cardId)) {
-                    System.err.println("Card " + cardId + " is no longer in user's collection");
+                    TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, 
+                            "Card exchange failed during database update");
                     return false;
                 }
             }
-
-            return true; 
+        } finally {
+            // Step 5: Always release locks
+            CardLockManager.getInstance().releaseLocks(tradeId);
+        }
+    }
+    
+    private boolean verifyCardsForTrade(String initiator, JSONArray offeredCards, UserCardsDatabase userCardsDB) {
+        try {
+            JSONArray initiatorCards = userCardsDB.getUserCards(initiator);
+            Set<String> cardIds = new HashSet<>();
+            
+            // Get all cards owned by the initiator
+            for (int i = 0; i < initiatorCards.size(); i++) {
+                JSONObject card = (JSONObject) initiatorCards.get(i);
+                cardIds.add(card.getString("cardID"));
+            }
+            
+            // Verify all offered cards are still owned by the initiator
+            for (int i = 0; i < offeredCards.size(); i++) {
+                JSONObject card = (JSONObject) offeredCards.get(i);
+                String cardId = card.getString("cardID");
+                
+                if (!cardIds.contains(cardId)) {
+                    System.out.println("Card " + cardId + " no longer owned by " + initiator);
+                    return false;
+                }
+            }
+            
+            return true;
         } catch (Exception e) {
-            System.err.println("Error verifying card ownership: " + e.getMessage());
-            return false; 
+            System.err.println("Error verifying cards for trade: " + e.getMessage());
+            return false;
         }
     }
 }

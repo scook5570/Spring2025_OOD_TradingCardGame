@@ -38,12 +38,12 @@ public class Server {
                 if (isConsistent) {
                     System.out.println("Database integrity check: PASSED");
                 } else {
-                    System.err.println("WARNING Database integrity failed");
+                    userCardsDatabase.validateAndRepairDatabaseIntegrity();
                 }
             } catch (Exception e) {
                 System.err.println("Error durign database integrity check: " + e.getMessage());
             }
-        }, 60, 60, TimeUnit.SECONDS); // run every minute 
+        }, 30, 30, TimeUnit.SECONDS); // run every 30 seconds 
 
         handler.start(5100, userCreds, userCardsDatabase, tradeDatabase); // or get port from args
 
