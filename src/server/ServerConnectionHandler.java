@@ -283,57 +283,7 @@ public class ServerConnectionHandler {
      * @param tradeId
      */
     private synchronized boolean executeTradeTransaction(String tradeId) {
-
-        JSONObject trade = tradeDatabase.getTrade(tradeId);
-        if (trade == null || !"accepted".equals(trade.getString("status"))) {
-            return false;
-        }
-
-        String initiator = trade.getString("initiator");
-        String recipient = trade.getString("recipient");
-        JSONArray offeredCards = trade.getArray("offeredCards");
-
-        // try to lock cards before the trade
-        if (!tradeDatabase.lockCardsForTrade(offeredCards)) {
-            // cards are invlolved in another trade 
-            tradeDatabase.updateTradeStatus(tradeId, "failed");
-            TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "One or more of the cards requested are currently invlolved in another trade");
-            return false; 
-        }
-
-        try {
-
-            // log the starting if the transaction
-            TradeLogger.getInstance().logTradeCompletion(tradeId, initiator, recipient);
-
-            // log each card transfer
-            for (int i = 0; i < offeredCards.size(); i++) {
-                JSONObject card  = (JSONObject) offeredCards.get(i);
-                TradeLogger.getInstance().logCardTransfer(tradeId, initiator, recipient, card.getString("cardID"), card.getString("name"));
-            }
-
-            // execute the transfer
-            boolean success = userCardsDatabase.exchangeCards(initiator, recipient, offeredCards);
-
-            if (success) {
-                // mark trade as completed
-                tradeDatabase.updateTradeStatus(tradeId, "completed");
-                return true; 
-            } else {
-                tradeDatabase.updateTradeStatus(tradeId, "failed");
-                TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "Transaction failed");
-                return false; 
-            }
-        
-        } catch (Exception e) {
-            tradeDatabase.updateTradeStatus(tradeId, "failed");
-            TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, e.getMessage());
-            return false; 
-        } finally {
-            // lock cards
-            tradeDatabase.unlockCards(offeredCards);
-        }
-
+        return TradeTransactionCoordinator.getInstance().executeTradeTransaction(tradeId, tradeDatabase, userCardsDatabase);
     } 
 
     /**
@@ -368,15 +318,19 @@ public class ServerConnectionHandler {
         return collection;
     }
 
+    /**
+     * performs a thorough database integrity check to ensure no card duplicates across users
+     * @return
+     */
     public boolean validateDatabaseIntegrity() {
+        System.out.println("Performing database integrity check...");
     
         // check for duplicate cards
-        Set<String> seenCardIds = new HashSet<>();
-        Map<String, List<String>> duplicateOwnership = new HashMap<>();
-        boolean hasDuplicates = false; 
+        Map<String, List<String>> cardToOwners = new HashMap<>();
+        boolean hasIntegrityIssues = false; 
 
         try {
-            // identify duplicates ; first pass
+            // build a map of card IDs to their owners
             for (String username : userCardsDatabase.getAllUsernames()) {
                 JSONArray userCards = userCardsDatabase.getUserCards(username);
             
@@ -384,50 +338,31 @@ public class ServerConnectionHandler {
                     JSONObject card = (JSONObject) userCards.get(i);
                     String cardId = card.getString("cardID");
 
-                    if (seenCardIds.contains(cardId)) {
-                        hasDuplicates = true; 
-
-                        // tracking ownsership
-                        if (!duplicateOwnership.containsKey(cardId)) {
-                            duplicateOwnership.put(cardId, new ArrayList<>());
-                        
-                            // find the first owner
-                            for (String otherUser : userCardsDatabase.getAllUsernames()) {
-                                if (!otherUser.equals(username)) {
-                                    JSONArray otherCards = userCardsDatabase.getUserCards(otherUser);
-                                    for (int j = 0; j < otherCards.size(); j++) {
-                                        if (cardId.equals(((JSONObject)otherCards.get(j)).getString("cardID"))) {
-                                            duplicateOwnership.get(cardId).add(otherUser);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        duplicateOwnership.get(cardId).add(username);
-                    } else {
-                        seenCardIds.add(cardId);
+                    if (!cardToOwners.containsKey(cardId)) {
+                        cardToOwners.put(cardId, new ArrayList<>());
                     }
-                } 
-            }
-
-            // report detailed findings if a duplicate exists
-            if (hasDuplicates) {
-                System.err.println("DATABASE INTEGRITY ERROR: Duplicate cards detected");
-                for (String cardId : duplicateOwnership.keySet()) {
-                    System.err.println("  Card " + cardId + " appears in multiple collections: " + String.join(", ", duplicateOwnership.get(cardId)));
+                    cardToOwners.get(cardId).add(username);
                 }
-                return false; 
+            } 
+
+            // count total cards
+            int totalCards = 0; 
+            for (List<String> owners : cardToOwners.values()) {
+                totalCards += owners.size();
             }
 
-            int totalCards = userCardsDatabase.countTotalCards();
-            System.out.println("Database integrity check passed. Total cards: " + totalCards);
-            return true; 
+            int uniqueCards = cardToOwners.size();
+            System.out.println("Total cards: " + totalCards + ", Unique cards: " + uniqueCards);
+
+            if (totalCards != uniqueCards) {
+                System.err.println("INTEGRITY ERROR: Card count mismatch. There are " + (totalCards - uniqueCards) + " duplicate cards in the system");
+            }
+
+            return !hasIntegrityIssues;
 
         } catch (Exception e) {
             System.err.println("Error validating database: " + e.getMessage());
             return false; 
         }
-    }
-
+   }
 }

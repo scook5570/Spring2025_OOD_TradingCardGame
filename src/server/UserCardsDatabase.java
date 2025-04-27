@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock; // description in TradeDatabase.java
 import java.util.Set;
 import java.util.HashSet;
+import java.util.UUID; 
 
 import merrimackutil.json.JSONSerializable;
 import merrimackutil.json.JsonIO;
@@ -193,107 +194,199 @@ public class UserCardsDatabase implements JSONSerializable {
     }
 
     public synchronized boolean exchangeCards(String fromUser, String toUser, JSONArray cardsToExchange) {
+        // lock for the entire op
         rwLock.writeLock().lock();
-
-        JSONArray originalFromUserCards = null;
-        JSONArray originalToUserCards = null;        
-
+    
         try {
-            int initialCardCount = countTotalCards();
+            // step 1: create a transaction ID for tracking 
+            String transactionId = UUID.randomUUID().toString();
+            System.out.println("Starting transaction " + transactionId);
 
-            // validate that the users exist
-            if (!cards.containsKey(fromUser) || !cards.containsKey(toUser)) {
-                return false; 
+            // step 2:L verify all cards are ownded by the sender and collect card IDs
+            Set<String> cardIdsToTransfer = new HashSet<>();
+            JSONArray senderCards = cards.get(fromUser);
+
+            if (senderCards == null) {
+                System.err.println("Transaction " + transactionId + " failed: Sender not found");
+                return false;
             }
 
-            // deep copy of original collections
-            originalFromUserCards = deepCopyCardArray(cards.get(fromUser));
-            originalToUserCards = deepCopyCardArray(cards.get(toUser));
+            // verify each card exists in sender's collection
+            for (int i = 0; i < cardsToExchange.size(); i++) {
+                JSONObject cardToExchange = (JSONObject) cardsToExchange.get(i);
+                String cardId = cardToExchange.getString("cardID");
 
-            // validate all cards exist in fromUser's collection
-            JSONArray fromUserCards = cards.get(fromUser);
-            boolean[] cardsFound = new boolean[cardsToExchange.size()];
-
-            for (int i = 0; i < fromUserCards.size(); i++) {
-                JSONObject userCard = (JSONObject) fromUserCards.get(i);
-
-                for (int j = 0; j < cardsToExchange.size(); j++) {
-                    JSONObject exchangeCard = (JSONObject) cardsToExchange.get(j);
-                    if (userCard.getString("cardID").equals(exchangeCard.getString("cardID"))) {
-                        cardsFound[j] = true; 
+                boolean cardFound = false; 
+                for (int j = 0; j < senderCards.size(); j++) {
+                    JSONObject senderCard = (JSONObject) senderCards.get(j);
+                    if (senderCard.getString("cardID").equals(cardId)) {
+                        cardFound = true; 
+                        break;
                     }
+                }
+
+                if (!cardFound) {
+                    System.err.println("Transaction " + transactionId + " failed: Card " + cardId + " not found in sender's collection");
+                    return false; 
+                }
+
+                // track card IDs to ensure we don't have duplicates in the request
+                if (!cardIdsToTransfer.add(cardId)) {
+                    System.err.println("transaction " + transactionId + " failed: Duplicate card " + cardId + " in exchange request");
+                    return false;
                 }
             }
 
-            // check to make sure all cards were found
-            for (boolean found : cardsFound) {
-                if (!found) {
+            // step 3: create new collection arrays for both users while avoiding in place modifications
+            JSONArray newSenderCards = new JSONArray();
+            JSONArray newRecipientCards = new JSONArray();
+            JSONArray recipientCards = cards.get(toUser);
+
+            if (recipientCards == null) {
+                System.err.println("Transaction " + transactionId + " failed: Recipient not found");
+                return false; 
+            }
+
+            // step 4: copy recipient's existing cards
+            for (int i = 0; i < recipientCards.size(); i++) {
+                newRecipientCards.add(deepCopyCard((JSONObject) recipientCards.get(i)));
+            } 
+
+            // step 5: filter out transferred cards from sender and add remainig ones to ne collection
+            for (int i = 0; i < senderCards.size(); i++) {
+                JSONObject card = (JSONObject) senderCards.get(i);
+                String cardId = card.getString("cardID");
+
+                if (!cardIdsToTransfer.contains(cardId)) {
+                    newSenderCards.add(deepCopyCard(card));
+                } else {
+                    // add transferred card to recipient
+                    newRecipientCards.add(deepCopyCard(card));
+                    System.out.println("Transaction " + transactionId + ": Transferring card " + cardId + " from " + fromUser + " to " + toUser);
+                }
+            }
+
+            // step 6: perform the actual update atomically
+            cards.put(fromUser, newSenderCards);
+            cards.put(toUser, newRecipientCards);
+
+            // step 7: verify integrity after the transaction
+            if (!verifyCardIntegrity(fromUser, toUser, cardIdsToTransfer, transactionId)) {
+
+                // shouldn't happen if our logic is correct 
+                System.err.println("Transaction " + transactionId + " failed iontegrity verification");
+                return false;
+            }
+
+            // step 8: save the changes to persistent storage
+            save();
+            System.out.println("Transaction " + transactionId + " completed successfully");
+            return true; 
+
+        } catch (Exception e) {
+            System.err.println("transaction failed with exception: " + e.getMessage());
+            e.printStackTrace();
+            return false; 
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+           
+    }
+
+    /**
+     * verify that all cards in the exchange are valid for transfer
+     * @param fromUser
+     * @param cardsToExchange
+     * @return
+     */
+    private boolean verifyCardsForExchange(String fromUser, JSONArray cardsToExchange) {
+        // check if sender exists
+        if (!cards.containsKey(fromUser)) {
+            System.err.println("Sender does not exist: " + fromUser);
+            return false; 
+        }
+
+        // get sender's cards
+        JSONArray senderCards = cards.get(fromUser);
+
+        // create a set of all the sender's card IDs for efficient lookup
+        Set<String> senderCardIds = new HashSet<>();
+        for (int i = 0; i < senderCards.size(); i++) {
+            JSONObject card = (JSONObject) senderCards.get(i);
+            senderCardIds.add(card.getString("cardID"));
+        }
+
+        // check that each card to be exchanged exists in sender's collection and is only being transfered once
+        Set<String> transferCardIds = new HashSet<>();
+        for (int i = 0; i < cardsToExchange.size(); i++) {
+            JSONObject card = (JSONObject) cardsToExchange.get(i);
+            String cardId = card.getString("cardID");
+
+            // check for existence in senders collection
+            if (!senderCardIds.contains(cardId)) {
+                System.err.println("Card " + cardId + " not found in sender's collection");
+                return false; 
+            }
+
+            // check if we're trying to transfer the same card twice
+            if (!transferCardIds.add(cardId)) {
+                System.err.println("Duplicate card in exchange request: " + cardId);
+                return false; 
+            }
+        }
+
+        return true; 
+
+    }
+
+    /**
+     * verifies the integrity of a card exchange transaction
+     * @param fromUser
+     * @param toUser
+     * @param transferredCardIds
+     * @param transactionId
+     * @return
+     */
+    private boolean verifyCardIntegrity(String fromUser, String toUser, Set<String> transferredCardIds, String transactionId) {
+        try {
+            JSONArray senderCards = cards.get(fromUser);
+            JSONArray recipientCards = cards.get(toUser);
+
+            // check 1 : sender should no longer have any of the transferred cards
+            for (int i = 0; i < senderCards.size(); i++) {
+                JSONObject card = (JSONObject) senderCards.get(i);
+                String cardId = card.getString("cardID");
+
+                if (transferredCardIds.contains(cardId)) {
+                    System.err.println("Integrity error: Sender still has the transferred card " + cardId);
                     return false; 
                 }
             }
 
-            // create updated collections
-            JSONArray newFromUserCards = new JSONArray();
-            for (int i = 0; i < fromUserCards.size(); i++) {
-                JSONObject userCard = (JSONObject) fromUserCards.get(i);
-                boolean shouldKeep = true;
+            // check 2: recipient should have all trqansferred cards exactly once 
+            Set<String> foundCardIds = new HashSet<>();
+            for (int i = 0; i < recipientCards.size(); i++) {
+                JSONObject card = (JSONObject) recipientCards.get(i);
+                String cardId = card.getString("cardID");
 
-                for (int j = 0; j < cardsToExchange.size(); j++) {
-                    JSONObject exchangeCard = (JSONObject) cardsToExchange.get(j);
-                    if (userCard.getString("cardID").equals(exchangeCard.getString("cardID"))) {
-                        shouldKeep = false;
-                        break; 
+                if (transferredCardIds.contains(cardId)) {
+                    if (foundCardIds.contains(cardId)) {
+                        System.err.println("Integrity error: Recipient has duplicate card " + cardId);
+                        return false; 
                     }
-                }
-
-                if (shouldKeep) {
-                    newFromUserCards.add(deepCopyCard(userCard));
+                    foundCardIds.add(cardId);
                 }
             }
 
-            // add cards to recipient's collection
-            JSONArray newToUserCards = cards.get(toUser);
-            for (int i = 0; i < cardsToExchange.size(); i++) {
-                newToUserCards.add(deepCopyCard((JSONObject) cardsToExchange.get(i)));
-            }
-
-            // update both collections atomically 
-            cards.put(fromUser, newFromUserCards);
-            cards.put(toUser, newToUserCards);
-        
-            // checking for duplicates
-            if (!validateCardUniqueness()) {
-                // rollback if validation fails
-                cards.put(fromUser, originalFromUserCards);
-                cards.put(toUser, originalToUserCards);
-                System.err.println("Transaction validation failed: Duplicate cards detected");
+            // check 3: all transferred cards should be found in recipient's collection
+            if (foundCardIds.size() != transferredCardIds.size()) {
+                System.err.println("Integrity error: not all trsnferred cards found in recipient's collection");
                 return false; 
             }
-            
-            // verify transaction integrity 
-            int finalCardCount = countTotalCards();
-            if (finalCardCount != initialCardCount) {
-                // card count mismatch - rollback and fail
-                cards.put(fromUser, originalFromUserCards);
-                cards.put(toUser, originalToUserCards);
-                System.err.println("Transaction validation failed: Card count mismatch - Before: " + initialCardCount + ", After: " + finalCardCount);
-                return false; 
-            }            
-
-            // save only after validations pass
-            save();
             return true; 
         } catch (Exception e) {
-
-            if (originalFromUserCards != null && originalToUserCards != null) {
-                cards.put(fromUser, originalFromUserCards);
-                cards.put(toUser, originalToUserCards);
-            }
-
-            System.err.println("Transaction failed: " + e.getMessage());
+            System.err.println("Error during integrity verification: " + e.getMessage());
             return false; 
-        } finally {
-            rwLock.writeLock().unlock();
         }
     }
 
@@ -343,6 +436,72 @@ public class UserCardsDatabase implements JSONSerializable {
             }
         }
         return true; 
+    }
+
+    /**
+     * rolls back a transaction
+     * @param transactionLog
+     */
+    private void rollbackTransaction(JSONArray transactionLog) {
+        // process the log in reverse order
+        for (int i = transactionLog.size() - 1; i >= 0; i--) {
+            JSONObject entry = (JSONObject) transactionLog.get(i);
+            String action = entry.getString("action");
+            String user = entry.getString("user");
+            JSONObject card = entry.getObject("card");
+
+            if ("add".equals(action)) {
+                // reverse and add - remove the card
+                removeCardFromUser(user, card);
+            } else if ("remove".equals(action)) {
+                // vice versa 
+                addCardToUser(user, card);
+            }
+        }
+    }
+
+    /**
+     * helper method to remove a specific card from a user 
+     * @param username
+     * @param cardToRemove
+     */
+    private void removeCardFromUser(String username, JSONObject cardToRemove) {
+        if (!cards.containsKey(username)) {
+            System.out.println("Username not found in database");
+            return; 
+        }
+
+         JSONArray userCards = cards.get(username);
+         JSONArray updatedCards = new JSONArray();
+         String cardIdToRemove = cardToRemove.getString("cardID");
+
+         // keep all cards except the one to remove 
+         for (int i = 0; i < userCards.size(); i++) {
+            JSONObject card = (JSONObject) userCards.get(i);
+            if (!card.getString("cardID").equals(cardIdToRemove)) {
+                updatedCards.add(deepCopyCard(card));
+            }
+         }
+
+         cards.put(username, updatedCards);
+    }
+
+    /**
+     * helper method to adda card to user's collection
+     * @param username
+     * @param cardtoAdd
+     */
+    private void addCardToUser(String username, JSONObject cardtoAdd) {
+        if (!cards.containsKey(username)) {
+            System.out.println("Username not found in database");
+            return;
+        }
+
+        JSONArray userCards = cards.get(username);
+        JSONArray updatedCards = deepCopyCardArray(userCards);
+        updatedCards.add(deepCopyCard(cardtoAdd));
+
+        cards.put(username, updatedCards);
     }
 
     /**
