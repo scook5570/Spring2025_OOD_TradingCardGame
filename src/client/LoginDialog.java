@@ -1,50 +1,43 @@
 package client;
 
-import javax.swing.*;
-
-import shared.MessageSocket;
-import shared.messages.Message;
-import shared.messages.UserCredRequest;
-import shared.messages.UserCredResponse;
-
 import java.awt.*;
 import java.io.IOException;
 import java.net.Socket;
 
-public class LoginScreen extends JFrame {
-    private final JTextField usernameField;
-    private final JPasswordField passwordField;
-    private final JButton loginButton;
-    private final JButton registerButton;
-    private final JLabel usernameLabel;
-    private final JLabel passwordLabel;
-    private final JLabel messageLabel;
-    private final JPanel loginPanel;
-    private final JPanel buttonPanel;
-    String serverAddress = "localhost";
-    int port = 5000;
-    // Alphanumeric and 5-12 characters
-    String userRegex = "[A-Z,a-z,0-9]{5,12}";
-    // At least one digit, one uppercase letter, one special character, 8+
-    // characters
-    String passRegex = "^(?=.*\\d)(?=.*[A-Z])(?=.*[\\W_]).{8,}$";
+import javax.swing.*;
 
-    public LoginScreen() {
+import shared.MessageSocket;
+import shared.messages.*;
+
+// A simple dialog for login
+public class LoginDialog extends JDialog {
+    private final String SERVERADDRESS = "localhost";
+    private final int PORT = 5000;
+    // Alphanumeric and 5-12 characters
+    private final String USERREGEX = "[A-Z,a-z,0-9]{5,12}";
+    // At least one digit, one uppercase letter, one special character, and 8+
+    // characters
+    private final String PASSREGEX = "^(?=.*\\d)(?=.*[A-Z])(?=.*[\\W_]).{8,}$";
+
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+    private JLabel messageLabel;
+
+    public LoginDialog() {
         setTitle("Login");
         setSize(400, 250);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setAlwaysOnTop(true);
         setResizable(false);
 
         // Labels
-        usernameLabel = new JLabel("Username:");
-        passwordLabel = new JLabel("Password:");
-        messageLabel = new JLabel("");
+        JLabel usernameLabel = new JLabel("Username:");
+        JLabel passwordLabel = new JLabel("Password:");
+        this.messageLabel = new JLabel("");
 
         // Text fields
-        usernameField = new JTextField(15);
-        passwordField = new JPasswordField(15);
+        this.usernameField = new JTextField(15);
+        this.passwordField = new JPasswordField(15);
 
         // Focuses on password field when enter user hit [enter] on the username field
         usernameField.addActionListener(e -> {
@@ -54,15 +47,15 @@ public class LoginScreen extends JFrame {
         // Attempts login when enter user hit [enter] on password field
         passwordField.addActionListener(e -> authenticate("Login"));
         // Buttons
-        loginButton = new JButton("Login");
-        registerButton = new JButton("Register");
+        JButton loginButton = new JButton("Login");
+        JButton registerButton = new JButton("Register");
 
         // Clear existing layout and constraints
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
 
-        loginPanel = new JPanel(new GridBagLayout());
+        JPanel loginPanel = new JPanel(new GridBagLayout());
         GridBagConstraints loginGBC = new GridBagConstraints();
 
         // Set insets for spacing
@@ -89,7 +82,7 @@ public class LoginScreen extends JFrame {
         loginGBC.gridwidth = 2; // Span two columns
         loginPanel.add(messageLabel, loginGBC);
 
-        buttonPanel = new JPanel(new GridLayout(1, 2));
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2));
         buttonPanel.add(loginButton);
         buttonPanel.add(registerButton);
 
@@ -116,9 +109,9 @@ public class LoginScreen extends JFrame {
         setVisible(true);
     }
 
-
     /**
      * Checks the user credentials for regex requiremnets
+     * 
      * @return If the credentiasl meet regex requirements
      */
     private boolean validateCredentials() {
@@ -127,19 +120,19 @@ public class LoginScreen extends JFrame {
         String password = new String(passwordField.getPassword());
 
         // Check if both username and password are invalid
-        if (!username.matches(userRegex) && !password.matches(passRegex)) {
+        if (!username.matches(USERREGEX) && !password.matches(PASSREGEX)) {
             messageLabel.setText("Invalid Credentials");
             return false;
         }
 
         // Check for valid username
-        if (!username.matches(userRegex)) {
+        if (!username.matches(USERREGEX)) {
             messageLabel.setText("Invalid Username");
             return false;
         }
 
         // Check for valid password
-        if (!password.matches(passRegex)) {
+        if (!password.matches(PASSREGEX)) {
             messageLabel.setText("Invalid Password");
             return false;
         }
@@ -149,7 +142,8 @@ public class LoginScreen extends JFrame {
     }
 
     /**
-     * Attempts to login or register 
+     * Attempts to login or register
+     * 
      * @param requestType Whether it should "Login" or "Register" the user
      */
     private void authenticate(String requestType) {
@@ -164,7 +158,7 @@ public class LoginScreen extends JFrame {
 
         try {
             // Connect to the server
-            MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
+            MessageSocket messageSocket = new MessageSocket(new Socket(SERVERADDRESS, PORT));
             UserCredRequest userCredRequest = new UserCredRequest(requestType, username, password);
             messageLabel.setText("Sending " + requestType + " request...");
             messageSocket.sendMessage(userCredRequest);

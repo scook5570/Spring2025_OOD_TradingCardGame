@@ -1,18 +1,11 @@
-
-import java.io.IOException;
-
 import javax.swing.SwingUtilities;
 
-import client.CollectionWindow;
-import client.LoginScreen;
+import client.LoginDialog;
 
 public class Main {
-    public static void main(String[] args) throws IOException {
-        // LoginScreen loginScreen = new LoginScreen();
-        // loginScreen.setVisible(true);
+    public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new LoginScreen();
+            new LoginDialog();
         });
-
     }
 }
