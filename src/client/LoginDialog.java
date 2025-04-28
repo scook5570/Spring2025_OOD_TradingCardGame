@@ -1,6 +1,11 @@
 package client;
 
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
 import java.io.IOException;
 import java.net.Socket;
 
@@ -29,6 +34,13 @@ public class LoginDialog extends JDialog {
         setLocationRelativeTo(null);
         setAlwaysOnTop(true);
         setResizable(false);
+        // Doesn't naturally stop program so stop when closed
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                System.exit(0);
+            }
+        });
 
         // Labels
         JLabel usernameLabel = new JLabel("Username:");
