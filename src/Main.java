@@ -9,8 +9,6 @@ public class Main {
             // Temporary turned off for testing pusposes
             // new LoginDialog();
             new MainFrame("username");
-            // new GameWindow("username");
-            // TODO Auto-generated catch block
         });
     }
 }

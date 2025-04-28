@@ -7,35 +7,43 @@ import javax.swing.*;
 
 import client.panels.CollectionPanel;
 import client.panels.HomePanel;
-import client.panels.TCGPanel;
 import client.utils.TCGUtils;
 
+/**
+ * The main frame that loads after login and shows the app UI
+ */
 public class MainFrame extends JFrame {
-    private CardLayout cardLayout;
+    private CardLayout cardLayout; // Manages switching between different panels
     private JPanel mainPanel;
     public String username;
-    public Rectangle rect;
+    public Rectangle rect; 
 
     /**
+     * Constructor for MainFrame
      * 
-     * The main farme that loads after login and shows the app UI
+     * @param username the username of the logged-in user
      */
     public MainFrame(String username) {
         this.username = username;
-        setTitle("Traiding Card Game");
-        setLocationRelativeTo(null);
+
+        // Set window properties
+        setTitle("Trading Card Game");
+        setLocationRelativeTo(null); // Center the window
         setBackground(TCGUtils.BACKGROUND_COLOR);
-        // Sets the frame the full screen size
+
+        // Set the window to full screen size
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         this.rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
         setBounds(this.rect);
-        // Makes it none rezisable after its adjusted to not overtake the tool bar
+
+        // After window is shown, prevent resizing
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
                 setResizable(false);
             }
 
+            // Exit program if window is closed
             @Override
             public void componentHidden(ComponentEvent e) {
                 System.exit(0);
@@ -46,15 +54,16 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // Add panels to the CardLayout
+        // Add Home and Collection panels to the main panel with identifiers
         mainPanel.add(new HomePanel(this, this.username), TCGUtils.HOME);
         mainPanel.add(new CollectionPanel(this, this.username), TCGUtils.COLLECTION);
 
         // Add the main panel to the frame
         add(mainPanel);
 
-        // Show the home page by default
+        // Show the Home panel by default
         cardLayout.show(mainPanel, "Home");
+
         setVisible(true);
     }
 
@@ -67,10 +76,20 @@ public class MainFrame extends JFrame {
         cardLayout.show(mainPanel, panelName);
     }
 
+    /**
+     * Returns the username of the current user
+     * 
+     * @return username
+     */
     public String getUsername() {
         return this.username;
     }
 
+    /**
+     * Returns the rectangle representing screen bounds
+     * 
+     * @return rectangle of the screen size
+     */
     public Rectangle getRect() {
         return this.rect;
     }

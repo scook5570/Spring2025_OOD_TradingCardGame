@@ -9,57 +9,102 @@ import client.objects.MenuButtons;
 import client.objects.PlayerInfoPanel;
 import client.utils.TCGUtils;
 
+/**
+ * TCGPanel is a base class for panels in the Trading Card Game (TCG)
+ * application.
+ * It sets up the general layout and includes common components like the user's
+ * information and the bottom menu.
+ */
 public class TCGPanel extends JPanel {
-    public MainFrame parentFrame;
-    public String username;
+    public MainFrame parentFrame; 
+    public String username; 
     public GridBagConstraints gbc;
     public Rectangle rect;
-    
-    public TCGPanel(MainFrame parentFrame, String username){
+
+    /**
+     * Constructor for TCGPanel
+     * 
+     * @param parentFrame The main frame that holds the panel
+     * @param username    The username of the logged-in player
+     */
+    public TCGPanel(MainFrame parentFrame, String username) {
         super();
-        this.parentFrame = parentFrame;
-        this.username = username;
-        this.rect = this.parentFrame.getRect();
-        setLayout(new GridBagLayout());
+        this.parentFrame = parentFrame; 
+        this.username = username; 
+        this.rect = this.parentFrame.getRect(); 
+        setLayout(new GridBagLayout()); 
         setBackground(TCGUtils.BACKGROUND_COLOR);
 
+        // Create the user information panel (displays username and profile picture)
         PlayerInfoPanel userInfoPanel = new PlayerInfoPanel(this.username);
 
-        // Panel with menu buttons
+        // Create the bottom menu with navigation buttons
         MenuButtons bottomPanel = new MenuButtons(this.parentFrame);
 
-        this.gbc = new GridBagConstraints();
+        this.gbc = new GridBagConstraints(); // Initialize the GridBagConstraints object
 
-        // Top panel aligned to the top right
-        this.gbc.gridx = 3; // right side
+        // Position the user info panel at the top right of the layout
+        this.gbc.gridx = 3;
         this.gbc.anchor = GridBagConstraints.NORTHEAST;
         add(userInfoPanel, this.gbc);
 
-        // Botton panel full width
+        // Position the bottom menu to span the entire width at the bottom
         this.gbc.gridx = 0;
         this.gbc.gridy = 2;
-        this.gbc.gridwidth = 4; // spans all columns
+        this.gbc.gridwidth = 4;
         this.gbc.weightx = 1;
         this.gbc.fill = GridBagConstraints.HORIZONTAL;
         add(bottomPanel, this.gbc);
 
-        // Reset the grid baf constarints to avoid bugs
-        this.gbc = new GridBagConstraints();
+        // Reset the GridBagConstraints object to avoid bugs in future layout
+        // modifications
+        resetGBC();
     }
 
-    public void addMainComponent(JComponent component){
-        // Size the component properly
+    /**
+     * Adds a main component (e.g., collection, carousel) to the panel.
+     * The component is centered and sized relative to the screen size.
+     * 
+     * @param component The component to be added (JComponent)
+     */
+    public void addMainComponent(JComponent component) {
+        // Set the component's preferred size to a percentage of the screen size
         component.setPreferredSize(new Dimension((int) (this.rect.width * 0.7), (int) (this.rect.height * 0.7)));
 
-        // Centered collection panel
-        gbc.gridy = 1;
-        gbc.gridwidth = GridBagConstraints.REMAINDER; // last item on row
-        gbc.weighty = 1; // allocates extra space so nicely cnetered
+        // Position the component in the layout, centered
+        gbc.gridy = 1; 
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.weighty = 1; // Let it take up vertical space for centering
         gbc.anchor = GridBagConstraints.CENTER;
         add(component, gbc);
+
+        resetGBC();
     }
 
-    public String getUsername(){
+    /**
+     * Getter method for the username
+     * 
+     * @return The username of the player
+     */
+    public String getUsername() {
         return this.username;
     }
+
+    /**
+     * Resets the GridBagConstraints object to default values
+     */
+    private void resetGBC() {
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 0, 0); // No padding
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+    }
+
 }
