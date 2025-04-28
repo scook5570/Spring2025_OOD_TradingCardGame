@@ -70,7 +70,7 @@ public class MessageSocket extends Socket{
      * @return Message of Object received
      */
     public Message getMessage() {
-        //get message from sender
+       //get message from sender
        String serializedMessage = recv.nextLine();
 
        //read object into JSON
