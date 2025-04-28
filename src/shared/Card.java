@@ -27,7 +27,7 @@ public class Card extends JPanel {
         this.cardID = cardID;
         this.name = name;
         this.rarity = rarity;
-        // this.image = image;
+        this.image = image;
         setPreferredSize(dimension);
     }
 

@@ -93,7 +93,7 @@ public class CollectionWindow extends JFrame {
         homeButton.addActionListener(e -> {
             dispose();
             try {
-                GameWindow g = new GameWindow();
+                GameWindow g = new GameWindow(username);
                 g.setVisible(true);
             } catch (IOException gameWindowException) {
                 gameWindowException.printStackTrace();

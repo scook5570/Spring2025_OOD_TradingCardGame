@@ -1,9 +1,13 @@
 package client;
 
+import shared.MessageSocket;
+import shared.messages.Message;
+import shared.messages.UserCredRequest;
+import shared.messages.UserCredResponse;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.io.IOException;
 
 public class LoginScreen extends JFrame {
     private final JTextField usernameField;
@@ -23,108 +27,174 @@ public class LoginScreen extends JFrame {
         setLocationRelativeTo(null);
         setAlwaysOnTop(true);
         setResizable(false);
+        setLayout(new GridBagLayout());
 
         // Labels
         usernameLabel = new JLabel("Username:");
         passwordLabel = new JLabel("Password:");
-        messageLabel = new JLabel("");
+        messageLabel = new JLabel("", SwingConstants.CENTER);
 
         // Text fields
         usernameField = new JTextField(15);
         passwordField = new JPasswordField(15);
 
-        // Buttons
         loginButton = new JButton("Login");
         registerButton = new JButton("Register");
 
-        // Create a layout manager
-
-        // Clear existing layout and constraints
-        setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-
         loginPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints loginGBC = new GridBagConstraints();
+        buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
 
-        // Set insets for spacing
-        loginGBC.insets = new Insets(5, 5, 5, 5);
+        setupLoginPanel();
+        setupButtonPanel();
+        layoutComponents();
+        setupListeners();
+    }
 
-        loginGBC.gridx = 0;  // Column 0
-        loginGBC.gridy = 0;  // Row 0
-        loginPanel.add(usernameLabel, loginGBC);
+    /**
+     * A method that sets up and creates the login panel
+     */
+    private void setupLoginPanel() {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.EAST;
 
-        loginGBC.gridx = 1;  // Column 1
-        loginGBC.gridy = 0;  // Row 0
-        loginPanel.add(usernameField, loginGBC);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        loginPanel.add(usernameLabel, gbc);
 
-        loginGBC.gridx = 0;  // Column 0
-        loginGBC.gridy = 1;  // Row 1
-        loginPanel.add(passwordLabel, loginGBC);
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        loginPanel.add(usernameField, gbc);
 
-        loginGBC.gridx = 1;  // Column 1
-        loginGBC.gridy = 1;  // Row 1
-        loginPanel.add(passwordField, loginGBC);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        loginPanel.add(passwordLabel, gbc);
 
-        loginGBC.gridx = 0;  // Column 0
-        loginGBC.gridy = 4;  // Row 4
-        loginGBC.gridwidth = 2;  // Span two columns
-        loginPanel.add(messageLabel, loginGBC);
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        loginPanel.add(passwordField, gbc);
 
-        buttonPanel = new JPanel(new GridLayout(1, 2));
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        loginPanel.add(messageLabel, gbc);
+    }
+
+    /**
+     * A method to set up and create the button panel
+     */
+    private void setupButtonPanel() {
         buttonPanel.add(loginButton);
         buttonPanel.add(registerButton);
+    }
 
-        add(loginPanel);
-
-        // Add loginPanel at (0, 0)
+    /**
+     * A method for setting up the layout of the login screen
+     */
+    private void layoutComponents() {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.CENTER;
         add(loginPanel, gbc);
 
-        // Add buttonPanel just below at (0, 1)
-        gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.CENTER;
         add(buttonPanel, gbc);
+    }
 
+    /**
+     * A method for setting up event listeners for buttons
+     */
+    private void setupListeners() {
+        loginButton.addActionListener(e -> handleLogin());
 
+        registerButton.addActionListener(e -> handleRegister());
+    }
 
-        // Button action listener for login
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String username = usernameField.getText();
-                String password = new String(passwordField.getPassword());
-                // TODO: Implement logic to check user credentials from a JSON file or other database
-                // Test credentials for now
-                if ("user".equals(username) && "password".equals(password)) {
-                    messageLabel.setText("Login successful!");
+    /**
+     * A method to handle user login using user credentials request of type "Login", open game window upon login
+     */
+    private void handleLogin() {
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword());
+
+        if (username.isEmpty() || password.isEmpty()) {
+            showError("Please fill in both fields.");
+            return;
+        }
+
+        new Thread(() -> {
+            try (MessageSocket loginSocket = new MessageSocket("localhost", 5000)) {
+                UserCredRequest loginRequest = new UserCredRequest("Login", username, password);
+                loginSocket.sendMessage(loginRequest);
+                Message message = loginSocket.getMessage();
+
+                if (message instanceof UserCredResponse response) {
+                    if (response.isSuccess()) {
+                        SwingUtilities.invokeLater(() -> {
+                            showSuccess("Login successful!");
+                            dispose();
+                            try {
+                                new GameWindow(username).setVisible(true);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    } else {
+                        SwingUtilities.invokeLater(() -> showError("Login failed. Please check your credentials."));
+                    }
                 } else {
-                    messageLabel.setText("Invalid credentials!");
-                    // TODO: Implement a counter for failed login attempts
-                    // TODO: Implement password reset
+                    SwingUtilities.invokeLater(() -> showError("Unexpected response type from server during login."));
                 }
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> showError("Login error: " + ex.getMessage()));
             }
-        });
+        }).start();
+    }
 
-        // Button action listener for register
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String username = usernameField.getText();
-                String password = new String(passwordField.getPassword());
+    /**
+     * A method to handle user registration using user credential request of type "Register"
+     */
+    private void handleRegister() {
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword());
 
-                // Simple registration logic (can be expanded)
-                if (!username.isEmpty() && !password.isEmpty()) {
-                    // TODO: Save the new user data (username and password) into a JSON file
-                    messageLabel.setText("Registration successful!");
+        if (username.isEmpty() || password.isEmpty()) {
+            showError("Please fill in both fields.");
+            return;
+        }
+        // may have to double check this, was having issues with the UI being blocked when requests were sent out
+        new Thread(() -> {
+            try (MessageSocket registerSocket = new MessageSocket("localhost", 5000)) {
+                UserCredRequest registerRequest = new UserCredRequest("Register", username, password);
+                registerSocket.sendMessage(registerRequest);
+                Message message = registerSocket.getMessage();
+
+                if (message instanceof UserCredResponse response) {
+                    if (response.isSuccess()) {
+                        SwingUtilities.invokeLater(() -> showSuccess("Registration successful!"));
+                    } else {
+                        SwingUtilities.invokeLater(() -> showError("Registration failed. Username may already be taken."));
+                    }
                 } else {
-                    messageLabel.setText("Please fill in both fields.");
-                    // TODO: Add password strength validation here (using regex)
+                    SwingUtilities.invokeLater(() -> showError("Unexpected response type from server during registration."));
                 }
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> showError("Registration error: " + ex.getMessage()));
             }
-        });
+        }).start();
+    }
+
+    private void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 }

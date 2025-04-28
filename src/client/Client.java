@@ -29,6 +29,9 @@ public class Client {
                 MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
                 System.out.println("Connected to server at " + serverAddress + ":" + port);
 
+                LoginScreen loginScreen = new LoginScreen();
+                loginScreen.setVisible(true);
+
                 // CLI for user input
                 System.out.println("Choose an option:");
                 System.out.println("1. Register");
