@@ -5,52 +5,38 @@ import java.io.IOException;
 
 import javax.swing.*;
 
-import client.CollectionWindow;
-import client.GameWindow;
+import client.frames.MainFrame;
 import client.utils.TCGUtils;
 
 public class MenuButtons extends JPanel {
-    private JButton galleryButton, homeButton, tradeButton;
-    private Frame parentFrame;
+    private MainFrame parentFrame;
 
-    public MenuButtons(Frame parentFrame) {
+    public MenuButtons(MainFrame parentFrame) {
         super();
+        this.parentFrame = parentFrame;
         setLayout(new FlowLayout(FlowLayout.CENTER, 100, 10));
         setBackground(TCGUtils.BACKGROUND_COLOR);
 
-        galleryButton = new JButton("Gallery");
-        galleryButton.setPreferredSize(new Dimension(100, 50));
-        galleryButton.setFocusPainted(false); // Stops the thin square form being drawend around the text
-        galleryButton.addActionListener(e -> {
-            // TODO: Change to gallery panel
-            new CollectionWindow("Username");
-            parentFrame.dispose();
+        JButton collectionButton = new JButton("Gallery");
+        collectionButton.setPreferredSize(new Dimension(100, 50));
+        collectionButton.setFocusPainted(false); // Stops the thin square form being drawend around the text
+        // Chnage to collection panel
+        collectionButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.COLLECTION));
 
-        });
-
-        homeButton = new JButton("Home");
+        JButton homeButton = new JButton("Home");
         homeButton.setPreferredSize(new Dimension(100, 50));
         homeButton.setFocusPainted(false);
-        homeButton.addActionListener(e -> {
-            // TODO: Change to Home panel
-            try {
-                new GameWindow();
-                parentFrame.dispose();
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
-            }
-            
-        });
+        // Change to home panel
+        homeButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.HOME));
 
-        tradeButton = new JButton("Trade");
+        JButton tradeButton = new JButton("Trade");
         tradeButton.setPreferredSize(new Dimension(100, 50));
         tradeButton.setFocusPainted(false);
         tradeButton.addActionListener(e -> {
             // TODO: Change to Trading panel
         });
 
-        add(galleryButton);
+        add(collectionButton);
         add(homeButton);
         add(tradeButton);
     }

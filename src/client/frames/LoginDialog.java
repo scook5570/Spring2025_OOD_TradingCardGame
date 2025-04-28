@@ -1,11 +1,7 @@
-package client;
+package client.frames;
 
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ContainerAdapter;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
+import java.awt.event.*;
 import java.io.IOException;
 import java.net.Socket;
 
@@ -180,7 +176,7 @@ public class LoginDialog extends JDialog {
             if (response instanceof UserCredResponse) {
                 UserCredResponse userCredResponse = (UserCredResponse) response;
                 if (userCredResponse.isSuccess() && requestType == "Login") {
-                    new GameWindow();
+                    new MainFrame(username);
                     dispose();
                 } else if (userCredResponse.isSuccess()) {
                     messageLabel.setText("Successfully Registered");
