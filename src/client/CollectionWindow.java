@@ -2,23 +2,15 @@ package client;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 
 import javax.swing.*;
 
-import java.io.File;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
+import client.objects.MenuButtons;
+import client.objects.PlayerInfoPanel;
 
 public class CollectionWindow extends JFrame {
-    private JPanel userInfoPanel, collectionPanel;
+    private JPanel collectionPanel;
     private JScrollPane collectionScrollPane;
-    private JButton tradeButton;
-    private JLabel statusLabel;
-    private JButton galleryButton;
-    private JButton homeButton;
-    private JPanel bottomPanel;
     private String username;
 
     public CollectionWindow(String username) {
@@ -26,10 +18,10 @@ public class CollectionWindow extends JFrame {
         setTitle("Home");
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         // Sets the frame the full screen size
         Rectangle rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
         setBounds(rect);
-
         // Makes it none rezisable after its adjusted to not overtake the tool bar
         addComponentListener(new ComponentAdapter() {
             @Override
@@ -39,21 +31,7 @@ public class CollectionWindow extends JFrame {
         });
         setLayout(new GridBagLayout());
 
-        userInfoPanel = new JPanel(new BorderLayout());
-        userInfoPanel.setPreferredSize(new Dimension(375, 50));
-        userInfoPanel.setBackground(new Color(217, 217, 217));
-        userInfoPanel.setLayout(new BoxLayout(userInfoPanel, BoxLayout.X_AXIS));
-
-        try {
-            // TODO: Get correct profile image for user
-            BufferedImage myPicture = ImageIO.read(new File("assets/user.png"));
-            Image scaledImage = myPicture.getScaledInstance(50, 50, Image.SCALE_SMOOTH);
-            JLabel picLabel = new JLabel(new ImageIcon(scaledImage));
-            picLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            userInfoPanel.add(picLabel);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        PlayerInfoPanel userInfoPanel = new PlayerInfoPanel();
 
         // temporary until we can obtain user from database
 
@@ -61,12 +39,7 @@ public class CollectionWindow extends JFrame {
         // passing it arund the frames
         // we wouldnt even need to validete it anymre and since all usernames should be
         // unique it should be easier to find
-        JLabel usernameLabel = new JLabel(this.username);
-        usernameLabel.setFont(new Font("Roboto", Font.PLAIN, 16));
-        usernameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        userInfoPanel.add(Box.createRigidArea(new Dimension(10, 0))); // Spacing
-        userInfoPanel.add(usernameLabel);
 
         // Panel where the cards will be displayed
         collectionPanel = new JPanel();
@@ -79,34 +52,8 @@ public class CollectionWindow extends JFrame {
         // Change scroll speed
         collectionScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        // Panel with buttons
-        bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 100, 10));
-        bottomPanel.setBackground(getBackground());
-
-        galleryButton = new JButton("Gallery");
-        galleryButton.setPreferredSize(new Dimension(100, 50));
-        galleryButton.setFocusPainted(false); // Stops the thin square form being drawend around the text
-
-        homeButton = new JButton("Home");
-        homeButton.setPreferredSize(new Dimension(100, 50));
-        homeButton.setFocusPainted(false);
-        homeButton.addActionListener(e -> {
-            dispose();
-            try {
-                GameWindow g = new GameWindow();
-                g.setVisible(true);
-            } catch (IOException gameWindowException) {
-                gameWindowException.printStackTrace();
-            }
-        });
-
-        tradeButton = new JButton("Trade");
-        tradeButton.setPreferredSize(new Dimension(100, 50));
-        tradeButton.setFocusPainted(false);
-
-        bottomPanel.add(galleryButton);
-        bottomPanel.add(homeButton);
-        bottomPanel.add(tradeButton);
+        // Panel with menu buttons
+        MenuButtons bottomPanel = new MenuButtons(this);
 
         GridBagConstraints gbc = new GridBagConstraints();
 

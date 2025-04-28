@@ -2,6 +2,10 @@ package client;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+
+import client.objects.MenuButtons;
+import client.objects.PlayerInfoPanel;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -18,22 +22,16 @@ public class GameWindow extends JFrame {
         setTitle("Home");
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension screenSize = toolkit.getScreenSize();
-        setSize(screenSize.width, screenSize.height);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        // Sets the frame the full screen size
+        Rectangle rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        setBounds(rect);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        int panelWidth = 375;
-        int panelHeight = 50;
-        int panelX = screenSize.width - panelWidth;
-        int panelY = 0;
-
-        userInfoPanel = new JPanel(new BorderLayout());
-        userInfoPanel.setBounds(panelX, panelY, panelWidth, panelHeight);
-        userInfoPanel.setBackground(new Color(217, 217, 217));
-        userInfoPanel.setLayout(new BoxLayout(userInfoPanel, BoxLayout.X_AXIS));
+        PlayerInfoPanel userInfoPanel = new PlayerInfoPanel();
         add(userInfoPanel);
-
 
         BufferedImage myPicture = ImageIO.read(new File("assets/user.png"));
         Image scaledImage = myPicture.getScaledInstance(50, 50, Image.SCALE_SMOOTH);
@@ -70,22 +68,8 @@ public class GameWindow extends JFrame {
         centerWrapper.add(carouselPanel);
         add(centerWrapper, BorderLayout.CENTER);
 
-        bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        bottomPanel.setBackground(new Color(200, 200, 200));
-
-        galleryButton = new JButton("Gallery");
-        galleryButton.setPreferredSize(new Dimension(100, 40));
-
-        homeButton = new JButton("Home");
-        homeButton.setPreferredSize(new Dimension(100, 40));
-
-        tradeButton = new JButton("Trade");
-        tradeButton.setPreferredSize(new Dimension(100, 40));
-
-        bottomPanel.add(galleryButton);
-        bottomPanel.add(homeButton);
-        bottomPanel.add(tradeButton);
-
+        MenuButtons bottomPanel = new MenuButtons(this);
+        
         add(bottomPanel, BorderLayout.SOUTH);
         setVisible(true);
     }
