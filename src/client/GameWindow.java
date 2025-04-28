@@ -1,27 +1,18 @@
 package client;
 
-import javax.imageio.ImageIO;
+import java.awt.*;
+
 import javax.swing.*;
 
 import client.objects.MenuButtons;
 import client.objects.PlayerInfoPanel;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-
 public class GameWindow extends JFrame {
-    private JPanel userInfoPanel;
-    private JButton tradeButton;
-    private JButton galleryButton;
-    private JButton homeButton;
-    private JPanel bottomPanel;
+    private String username;
 
-    public GameWindow() throws IOException {
+    public GameWindow(String username) {
+        this.username = username;
         setTitle("Home");
-        Toolkit toolkit = Toolkit.getDefaultToolkit();
-        Dimension screenSize = toolkit.getScreenSize();
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         // Sets the frame the full screen size
         Rectangle rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
@@ -30,23 +21,9 @@ public class GameWindow extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        PlayerInfoPanel userInfoPanel = new PlayerInfoPanel();
+        PlayerInfoPanel userInfoPanel = new PlayerInfoPanel(this.username);
+
         add(userInfoPanel);
-
-        BufferedImage myPicture = ImageIO.read(new File("assets/user.png"));
-        Image scaledImage = myPicture.getScaledInstance(50, 50, Image.SCALE_SMOOTH);
-        JLabel picLabel = new JLabel(new ImageIcon(scaledImage));
-
-        // temporary until we can obtain user from database
-        JLabel usernameLabel = new JLabel("username");
-        usernameLabel.setFont(new Font("Roboto", Font.PLAIN, 16));
-
-        picLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        usernameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        userInfoPanel.add(picLabel);
-        userInfoPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        userInfoPanel.add(usernameLabel);
 
         // Card carousel
         JPanel carouselPanel = new JPanel();

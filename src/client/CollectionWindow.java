@@ -31,7 +31,7 @@ public class CollectionWindow extends JFrame {
         });
         setLayout(new GridBagLayout());
 
-        PlayerInfoPanel userInfoPanel = new PlayerInfoPanel();
+        PlayerInfoPanel userInfoPanel = new PlayerInfoPanel(this.username);
 
         // temporary until we can obtain user from database
 
