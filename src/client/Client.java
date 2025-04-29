@@ -29,9 +29,6 @@ public class Client {
                 MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
                 System.out.println("Connected to server at " + serverAddress + ":" + port);
 
-                LoginScreen loginScreen = new LoginScreen();
-                loginScreen.setVisible(true);
-
                 // CLI for user input
                 System.out.println("Choose an option:");
                 System.out.println("1. Register");
@@ -52,9 +49,11 @@ public class Client {
 
                 // Prompt for username and password
                 System.out.print("Enter username: ");
-                username = scanner.nextLine();
+                username = "Briotgears";
+                System.out.println(username);
                 System.out.print("Enter password: ");
-                password = scanner.nextLine();
+                password = "Test_123";
+                System.out.println(password);
 
                 // Create and send the UserCredRequest
                 UserCredRequest userCredRequest = new UserCredRequest(requestType, username, password);
@@ -138,6 +137,7 @@ public class Client {
                     } else {
                         System.err.println("Unexpected response type: " + response.getType());
                     }
+                    messageSocket.close();
                 } else if (homeChoice == 3) {
                     System.out.println("Logging out...");
                     running = false;

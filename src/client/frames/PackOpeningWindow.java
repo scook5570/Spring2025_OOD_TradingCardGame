@@ -1,4 +1,4 @@
-package client;
+package client.frames;
 
 import javax.swing.*;
 import java.awt.*;

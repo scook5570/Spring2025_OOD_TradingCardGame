@@ -1,116 +1,46 @@
-package client;
+package client.panels;
 
-import merrimackutil.json.types.JSONArray;
-import merrimackutil.json.types.JSONObject;
-import shared.Card;
-import shared.MessageSocket;
-import shared.messages.Message;
-import shared.messages.PackRequest;
-import shared.messages.PackResponse;
-
-import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.net.Socket;
 
-public class GameWindow extends JFrame {
+import javax.swing.*;
+
+import client.*;
+import client.frames.MainFrame;
+import client.frames.PackOpeningWindow;
+import client.utils.TCGUtils;
+import merrimackutil.json.types.*;
+import shared.Card;
+import shared.MessageSocket;
+import shared.messages.*;
+
+/**
+ * HomePanel represents the home screen shown after login.
+ * It contains a carousel-like display of card packs.
+ */
+public class HomePanel extends TCGPanel {
 
     private JPanel[] packPanels;
     private JPanel carouselPanel;
     private int currentIndex = 1;
 
-    private final String username;
-    String serverAddress = "localhost";
-    int port = 5000;
-
-    public GameWindow(String username) throws IOException {
-        this.username = username;
-        setTitle("Home");
-        setupWindow();
-
-        JPanel topWrapper = new JPanel(new BorderLayout());
-        topWrapper.setBackground(new Color(217, 217, 217));
-
-        // Add user info panel
-        topWrapper.add(createUserInfoPanel(), BorderLayout.EAST);
-        add(topWrapper, BorderLayout.NORTH);
-
-        add(createCarouselPanel(), BorderLayout.CENTER);
-        // Panel with buttons
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 100, 10));
-        bottomPanel.setBackground(new Color(217, 217, 217));
-
-        JButton galleryButton = new JButton("Gallery");
-        galleryButton.addActionListener(e -> {
-            CollectionWindow collectionWindow = new CollectionWindow(username);
-            collectionWindow.setVisible(true);
-        });
-        galleryButton.setPreferredSize(new Dimension(100, 50));
-        galleryButton.setFocusPainted(false);
-
-        JButton homeButton = new JButton("Home");
-        homeButton.setPreferredSize(new Dimension(100, 50));
-        homeButton.setFocusPainted(false);
-
-        JButton tradeButton = new JButton("Trade");
-        tradeButton.setPreferredSize(new Dimension(100, 50));
-        tradeButton.setFocusPainted(false);
-
-        bottomPanel.add(galleryButton);
-        bottomPanel.add(homeButton);
-        bottomPanel.add(tradeButton);
-        add(bottomPanel, BorderLayout.SOUTH);
-    }
-
     /**
-     * A method to set up the frame
+     * Constructor for HomePanel
+     * 
+     * @param parentFrame The main application frame
+     * @param username    The username of the logged-in player
      */
-    private void setupWindow() {
-        Rectangle bounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-        setBounds(bounds);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
-    }
+    public HomePanel(MainFrame parentFrame, String username) {
+        super(parentFrame, username);
 
-    /**
-     * A method which creates the user info panel
-     * @return Panel userInfoPanel
-     */
-    // TODO: Make userInfoPanel an object that can be used by collection window and game window
-    private JPanel createUserInfoPanel() {
-        JPanel userInfoPanel = new JPanel(new BorderLayout());
-        userInfoPanel.setPreferredSize(new Dimension(375, 50));
-        userInfoPanel.setBackground(new Color(217, 217, 217));
-        userInfoPanel.setLayout(new BoxLayout(userInfoPanel, BoxLayout.X_AXIS));
-
-        try {
-            // TODO: Get correct profile image for user
-            BufferedImage myPicture = ImageIO.read(new File("assets/user.png"));
-            Image scaledImage = myPicture.getScaledInstance(50, 50, Image.SCALE_SMOOTH);
-            JLabel picLabel = new JLabel(new ImageIcon(scaledImage));
-            picLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            userInfoPanel.add(picLabel);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        JLabel usernameLabel = new JLabel(username);
-        usernameLabel.setFont(new Font("Roboto", Font.PLAIN, 16));
-        usernameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        userInfoPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        userInfoPanel.add(usernameLabel);
-
-        return userInfoPanel;
+        // Create the card carousel panel and add the entire centerWrapper to the main panel
+        addMainComponent(createCarouselPanel(), true);
     }
 
     /**
      * A method which creates a carousel panel to contain the card carousel
+     * 
      * @return Panel fullWrapper
      */
     private JPanel createCarouselPanel() {
@@ -163,6 +93,7 @@ public class GameWindow extends JFrame {
 
     /**
      * A method which
+     * 
      * @param largeFont Font of choice for the aesthetics
      * @param navButton The navigation button either left or right
      */
@@ -210,9 +141,11 @@ public class GameWindow extends JFrame {
     }
 
     /**
-     * The sizing of the pack is determined by its index, center pack should always be the biggest
+     * The sizing of the pack is determined by its index, center pack should always
+     * be the biggest
+     * 
      * @param index Index of the current pack
-     * @param size Necessary size of the pack
+     * @param size  Necessary size of the pack
      * @return Panel panel
      */
     private JPanel getSizedPack(int index, Dimension size) {
@@ -223,7 +156,8 @@ public class GameWindow extends JFrame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 // Prompt user to confirm opening the pack
-                int response = JOptionPane.showConfirmDialog(GameWindow.this, "Would you like to open this pack?", "Open Pack", JOptionPane.YES_NO_OPTION);
+                int response = JOptionPane.showConfirmDialog(parentFrame, "Would you like to open this pack?",
+                        "Open Pack", JOptionPane.YES_NO_OPTION);
                 if (response == JOptionPane.YES_OPTION) {
                     openPack(index);
                 }
@@ -234,16 +168,16 @@ public class GameWindow extends JFrame {
 
     /**
      * A method for opening and rendering packs
+     * 
      * @param packIndex The current index of the selected pack
      */
     private void openPack(int packIndex) {
         System.out.println("openPack called with pack index: " + packIndex);
 
-        try {
+        try (MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT))) {
             System.out.println("Opening a pack...");
 
-            MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
-            System.out.println("Connected to server at " + serverAddress + ":" + port);
+            System.out.println("Connected to server at " + TCGUtils.SERVERADDRESS + ":" + TCGUtils.PORT);
 
             PackRequest packRequest = new PackRequest(username, "PackNamePlaceholder", 5);
             messageSocket.sendMessage(packRequest);
@@ -286,23 +220,9 @@ public class GameWindow extends JFrame {
     }
 
     /**
-     * Helper method to set the spacing of certain panels
-     * @param content Panel that needs to be wrapped
-     * @param size The size of the container
-     * @return A wrapper container
-     */
-    private JPanel wrapWithContainer(JPanel content, Dimension size) {
-        JPanel container = new JPanel();
-        container.setOpaque(false);
-        container.setPreferredSize(size);
-        container.setLayout(new GridBagLayout());
-        container.add(content);
-        return container;
-    }
-
-    /**
      * A method to create the panel for a pack
-     * @param size The size of the pack
+     * 
+     * @param size  The size of the pack
      * @param color The color of the pack (for debugging)
      * @return The pack panel
      */
@@ -312,5 +232,21 @@ public class GameWindow extends JFrame {
         pack.setBackground(color);
         pack.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         return pack;
+    }
+
+    /**
+     * Helper method to set the spacing of certain panels
+     * 
+     * @param content Panel that needs to be wrapped
+     * @param size    The size of the container
+     * @return A wrapper container
+     */
+    private JPanel wrapWithContainer(JPanel content, Dimension size) {
+        JPanel container = new JPanel();
+        container.setOpaque(false);
+        container.setPreferredSize(size);
+        container.setLayout(new GridBagLayout());
+        container.add(content);
+        return container;
     }
 }

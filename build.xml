@@ -1,4 +1,4 @@
-<project name="TradingCardGame" default="run" basedir=".">
+<project name="TradingCardGame" default="dist" basedir=".">
     <description>
         Builds the Trading Card Game project.
     </description>
@@ -7,6 +7,8 @@
     <property name="src" location="src"/>
     <property name="build" location="build"/>
     <property name="dist" location="dist"/>
+    <property name="merrimackutil" value="merrimackutil.jar" />
+
 
     <target name="init" description="Create the build directory structure">
         <mkdir dir="${build}"/>
@@ -16,37 +18,37 @@
     <target name="compile" depends="init" description="Compile source code">
         <!-- Compile the Java code from ${src} into ${build} -->
         <javac includeantruntime="false"
-               srcdir="${src}" destdir="${build}" classpath="lib/merrimackutil.jar:lib/bcprov.jar"/>
+               srcdir="${src}" destdir="${build}" classpath="lib/${merrimackutil}"/>
     </target>
 
     <target name="dist" depends="compile" description="Generate the jar files for the server and client">
         <!-- Create the server jar file -->
+        <!-- Make a copy to disk so Class-Path can find it-->
+        <copy file="lib/${merrimackutil}" todir="${dist}" />
+
         <jar jarfile="${dist}/server.jar" basedir="${build}">
             <manifest>
                 <attribute name="Main-Class" value="server.Server"/>
-                <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
+                <attribute name="Class-Path" value="${merrimackutil}"/>
             </manifest>
+
         </jar>
 
-        <!-- Create the client jar file -->
-        <jar jarfile="${dist}/client.jar" basedir="${build}">
-            <manifest>
-                <attribute name="Main-Class" value="client.Client"/>
-                <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
-            </manifest>
-        </jar>
-
+        <!-- Create the main jar file -->
         <jar jarfile="${dist}/main.jar" basedir="${build}">
             <manifest>
                 <attribute name="Main-Class" value="Main"/>
-                <attribute name="Class-Path" value="lib/merrimackutil.jar"/>
+                <attribute name="Class-Path" value="${merrimackutil}"/>
             </manifest>
         </jar>
     </target>
 
-    <target name="run" depends="dist" description="Run the application">
-        <java jar="${dist}/main.jar" fork="true"/>
-    </target>
+    <!-- Depricated: caused the server to run in the background indefinately-->
+    <!-- <target name="run" depends="dist" description="Run the server and the app">
+        Run the server in a different JVM (fork) without blocking this one (spawn)
+        <java jar="${dist}/server.jar" fork="true" spawn="true" />
+        <java jar="${dist}/main.jar" fork="true" />
+    </target> -->
 
     <target name="clean" description="Clean up build and dist directories">
         <delete dir="${build}"/>
