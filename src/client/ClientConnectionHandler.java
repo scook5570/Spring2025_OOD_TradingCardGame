@@ -23,6 +23,8 @@ import java.util.concurrent.TimeoutException;
 
 import java.util.regex.Pattern;
 
+import org.w3c.dom.css.Counter;
+
 import java.util.function.Consumer; 
 
 import client.EventBus.EventType;
@@ -159,6 +161,8 @@ public class ClientConnectionHandler {
             case "TradeResponse":
                 EventBus.getInstance().publish(EventType.TRADE_RESPONSE, response);
                 break;
+            case "CounterOfferResponse":
+                EventBus.getInstance().publish(EventType.COUNTER_OFFER, response);
             default:
             System.err.println("Unkown response type: " + response.getType());
         }
@@ -413,13 +417,58 @@ public class ClientConnectionHandler {
         return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.TRADE_RESPONSE, listener));
     }
 
-    // public void setTradeOfferCallback(Consumer<TradeOfferNotification> callback) {
-    //     this.tradeOfferCallback = callback;
-    // }
+    /**
+     * handl counteroffers from the server
+     * @param originalTradeId
+     * @param recipient
+     * @param offeredCards
+     * @return
+     */
+    public CompletableFuture<String> sendCounterOffer(String originalTradeId, String recipient, JSONArray offeredCards) {
+        System.out.println("Sending counteroffer for trade: " + originalTradeId);
 
-    // public void setTradeResponseCallback(Consumer<TradeResponse> callback) {
-    //     this.tradeResponseCallback = callback;
-    // }
+        if (this.username == null) {
+            CompletableFuture<String> failedFuture = new CompletableFuture<>();
+            failedFuture.completeExceptionally(new IllegalStateException("Not logged in"));
+            return failedFuture; 
+        }
+
+        CounterOfferRequest request = new CounterOfferRequest(originalTradeId, this.username, recipient, offeredCards);
+        sendMessage(request);
+
+        System.out.println("Counteroffer sent");
+        return CompletableFuture.completedFuture("Counteroffer initiated");
+    }
+
+    /**
+     * wait for incoming counteroffers
+     * @param timeoutSeconds
+     * @return
+     */
+    public CompletableFuture<CounterOfferRequest> waitForCounterOffer(long timeoutSeconds) {
+        System.out.println("Waiting for counteroffers...");
+        CompletableFuture<CounterOfferRequest> future = new CompletableFuture<>();
+
+        Consumer<CounterOfferRequest> listener = offer -> {
+            System.out.println("Received counteroffer for trade: " + offer.getOriginalTradeId());
+            future.complete(offer);
+        };
+
+        EventBus.getInstance().subscribe(EventType.COUNTER_OFFER, listener);
+
+        executorService.schedule(() -> {
+            if (!future.isDone()) {
+                future.completeExceptionally(new TimeoutException("No counteroffer received"));
+                EventBus.getInstance().unsubscribe(EventType.COUNTER_OFFER, listener);
+            }
+        }, timeoutSeconds, TimeUnit.SECONDS);
+
+        return future.whenComplete((result, ex) -> {
+            if (result != null) {
+                EventBus.getInstance().unsubscribe(EventType.COUNTER_OFFER, listener);
+            }
+        });
+    }
 
     /**
      * Set the current username
