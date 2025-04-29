@@ -139,6 +139,20 @@ public class ClientHandler implements Runnable {
                 } else if (recvMsg instanceof TradeResponse) {
                     TradeResponse tradeResponse = (TradeResponse) recvMsg;
                     server.handleTradeResponse(tradeResponse);
+                } else if (recvMsg instanceof CounterOfferRequest) {
+                    CounterOfferRequest counterOffer = (CounterOfferRequest) recvMsg;
+                    boolean success = server.handleCounterOffer(counterOffer);
+
+                    if (!success) {
+                        System.err.println("Counter offer failed: " + counterOffer.getTradeId());
+                    }
+                } else if (recvMsg instanceof TradeConfirmationRequest) {
+                    TradeConfirmationRequest confirmation = (TradeConfirmationRequest) recvMsg;
+                    boolean success = server.handleTradeConfirmation(confirmation);
+
+                    if (!success) {
+                        System.err.println("Confirmation failed: " + confirmation.getTradeId());
+                    }
                 } else {
                     System.err.println("Unknown message type: " + recvMsg.getType());
                 }

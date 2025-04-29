@@ -424,20 +424,46 @@ public class ClientConnectionHandler {
      * @param offeredCards
      * @return
      */
-    public CompletableFuture<String> sendCounterOffer(String originalTradeId, String recipient, JSONArray offeredCards) {
-        System.out.println("Sending counteroffer for trade: " + originalTradeId);
+    public CompletableFuture<Boolean> sendCounterOffer(String tradeId, JSONArray offeredCards) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-        if (this.username == null) {
-            CompletableFuture<String> failedFuture = new CompletableFuture<>();
-            failedFuture.completeExceptionally(new IllegalStateException("Not logged in"));
-            return failedFuture; 
-        }
-
-        CounterOfferRequest request = new CounterOfferRequest(originalTradeId, this.username, recipient, offeredCards);
+        CounterOfferRequest request = new CounterOfferRequest(tradeId, this.username, offeredCards);
         sendMessage(request);
 
-        System.out.println("Counteroffer sent");
-        return CompletableFuture.completedFuture("Counteroffer initiated");
+        // set up listener for trade response
+        Consumer<TradeResponse> listener = response -> {
+            if (response.getTradeId().equals(tradeId)) {
+                future.complete(true);
+            }
+        };
+
+        EventBus.getInstance().subscribe(EventType.TRADE_RESPONSE, listener);
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.TRADE_RESPONSE, listener));
+
+    }
+
+    /**
+     * send final confirmation for a trade
+     * @param tradeId
+     * @param confirmed
+     * @return
+     */
+    public CompletableFuture<Boolean> confirmTrade(String tradeId, boolean confirmed) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        TradeConfirmationRequest request = new TradeConfirmationRequest(tradeId, this.username, confirmed);
+        sendMessage(request);
+
+        // set up listenere for trade response
+        Consumer<TradeResponse> listener = response -> {
+            if (response.getTradeId().equals(tradeId)) {
+                future.complete(response.isAccepted() == confirmed);
+            }
+        };
+
+        EventBus.getInstance().subscribe(EventType.TRADE_RESPONSE, listener);
+
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.TRADE_RESPONSE, listener));
+
     }
 
     /**
@@ -450,7 +476,7 @@ public class ClientConnectionHandler {
         CompletableFuture<CounterOfferRequest> future = new CompletableFuture<>();
 
         Consumer<CounterOfferRequest> listener = offer -> {
-            System.out.println("Received counteroffer for trade: " + offer.getOriginalTradeId());
+            System.out.println("Received counteroffer for trade: " + offer.getOriginalTradeId()); // <- getTradeId???
             future.complete(offer);
         };
 

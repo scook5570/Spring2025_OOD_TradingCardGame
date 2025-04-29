@@ -15,7 +15,9 @@ public class EventBus {
         PACK_RESPONSE,
         TRADE_OFFER,
         TRADE_RESPONSE,
-        COUNTER_OFFER // new event type 
+        COUNTER_OFFER,
+        COUNTER_OFFER_RESPONSE,
+        AVAILABLE_USER_RESPONSE
     }
 
     // thread safe collections for listeners 

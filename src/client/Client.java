@@ -1,7 +1,15 @@
 package client;
 
+import java.time.zone.ZoneOffsetTransitionRule.TimeDefinition;
 //import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import merrimackutil.json.types.JSONArray;
+import merrimackutil.json.types.JSONObject;
+import shared.messages.TradeOfferNotification;
 
 public class Client {
     public static void main(String[] args) {
@@ -130,10 +138,83 @@ public class Client {
      * @param username
      */
     private static void initiateTradeFlow(Scanner scanner, ClientConnectionHandler connectionHandler, String username) {
-        System.out.println("Enter the username of the player you'd like to trade with: ");
-        String recipient = scanner.nextLine();
+        try {
+            // step 1 : get available users to trade with
+            System.out.println("Fetching available users...");
+            JSONArray availableUsers = connectionHandler.getAvailableTradeUsers().get(10, TimeUnit.SECONDS);
 
-        connectionHandler.getCollection(username);
+            if (availableUsers == null || availableUsers.size() == 0) {
+                System.out.println("No users available for trading");
+                return;
+            }
+
+            // step 2 : display availabe users
+            System.out.println("Available users to trade with:");
+            for (int i = 0; i < availableUsers.size(); i++) {
+                System.out.println((i+1) + "." + availableUsers.getString(i));
+            }
+
+            // step 3 : select recipient 
+            System.out.println("Enter the number of the user you want to trade with (or 0 to cancel): ");
+            int userChoice = scanner.nextInt();
+            scanner.nextLine();
+
+            if (userChoice ==0 || userChoice > availableUsers.size()) {
+                System.out.println("Trade canceled.");
+                return;
+            }
+
+            String recipient = availableUsers.getString(userChoice - 1);
+
+            // step 4 : get user's cards
+            System.out.println("Fetching your card collection");
+            JSONArray userCards = connectionHandler.getCollection(username).get(10, TimeUnit.SECONDS);
+        
+            if (userCards == null || userCards.size() == 0) {
+                System.out.println("You don't have any cards to trade");
+                return;
+            }
+
+            // step 5 : display user's cards
+            System.out.println("Your cards:");
+            for (int i = 0; i < userCards.size(); i++) {
+                JSONObject card = (JSONObject) userCards.get(i);
+                System.out.println((i + 1) + "." + card.getString("name") + " (Rarity " + card.getInt("rarity") + ")");
+            }
+
+            // step 6 : select cards to offer
+            System.out.println("Enter numbers of the cards you want to offer (comma-separated, or 0 to cancel): ");
+            String cardChoices = scanner.nextLine();
+
+            if (cardChoices.equals("0")) {
+                System.out.println("Trade canceled");
+                return;
+            }
+
+            String[] choices = cardChoices.split(",");
+            JSONArray selectedCards = new JSONArray();
+
+            for (String choice : choices) {
+                int cardIndex = Integer.parseInt(choice.trim()) - 1;
+                if (cardIndex >= 0 && cardIndex < userCards.size()) {
+                    selectedCards.add(userCards.get(cardIndex));
+                }
+            }
+
+            if (selectedCards.size() == 0) {
+                System.out.println("No valid cards selected. Trade canceled");
+                return;
+            }
+
+            // step 7 : initiate the trade
+            System.out.println("Initiating trade with " + recipient + "...");
+            String result = connectionHandler.initiateTrade(recipient, selectedCards).get(10, TimeUnit.SECONDS);
+
+            System.out.println(result);
+            System.out.println("Trade initiated! Waiting for " + recipient + " to respond");
+        } catch (Exception e) {
+            System.err.println("Error initiatin trade: " + e.getMessage());
+        }
     }
 
     /**
@@ -141,14 +222,125 @@ public class Client {
      * @param scanner
      * @param connectionHandler
      * @param username
+     * @throws TimeoutException 
+     * @throws ExecutionException 
+     * @throws InterruptedException 
      */
-    private static void viewPendingTradesFlow(Scanner scanner, ClientConnectionHandler connectionHandler, String username) {
-        // set up the callback to handle incoming trade offers
-        connectionHandler.waitForTradeOffer(15);
+    private static void viewPendingTradesFlow(Scanner scanner, ClientConnectionHandler connectionHandler, String username) throws InterruptedException, ExecutionException, TimeoutException {
+        try
+            {System.out.println("Waiting for trade notifications...");
 
-        System.out.println("Waiting for trade notifications...");
-        System.out.println("Press enter to return to the main menu");
-        scanner.nextLine();
+            // wait for trade notifications with timeout 
+            TradeOfferNotification offer = connectionHandler.waitForTradeOffer(30).get(10, TimeUnit.SECONDS);
+            
+            if (offer == null) {
+                System.out.println("No trade offers received");
+                return;
+            }
 
+            System.out.println("Trade offer received from: " + offer.getSenderUsername());
+            System.out.println("Cards offered:");
+            displayCards(offer.getOfferedCards());
+
+            String tradeStage = offer.getTradeStage();
+
+            if (tradeStage.equals("initial")) {
+                // initial offer - recipient needs to counter-offer
+                System.out.println("do you want to repsonse to this trade? (y/n): ");
+                String response = scanner.nextLine();
+
+                if (!response.equalsIgnoreCase("y")) {
+                    connectionHandler.respondToTrade(offer.getTradeID(), false).get(10, TimeUnit.SECONDS);
+                    System.out.println("Trade rejected.");
+                    return;
+                }
+
+                // get recpient's cards for counter-offer
+                JSONArray userCards = connectionHandler.getCollection(username).get(10, TimeUnit.SECONDS);
+
+                if (userCards == null || userCards.size() == 0) {
+                    System.out.println("You don't have any cards to offer in return");
+                    return; 
+                }
+
+                // display user's cards
+                System.out.println("Your cards:");
+                for (int i = 0; i < userCards.size(); i++) {
+                    JSONObject card = (JSONObject) userCards.get(i);
+                    System.out.println((i + 1) + ". " + card.getString("name")+ " (Rarity: " + card.getInt("rarity") + ")");
+                }
+
+                // select cards for counter offer
+                System.out.println("Enter the numbers of the cards you want to offer in return (comma-separated): ");
+                String cardChoices = scanner.nextLine();
+
+                String[] choices = cardChoices.split(",");
+                JSONArray selectedCards = new JSONArray();
+
+                for (String choice : choices) {
+                    int cardIndex = Integer.parseInt(choice.trim()) - 1;
+                    if (cardIndex >= 0 && cardIndex <userCards.size()) {
+                        selectedCards.add(userCards.get(cardIndex));
+                    }
+                }
+
+                if (selectedCards.size() == 0) {
+                    System.out.println("No valid cards selected. Trade canceled");
+                    return;
+                }
+
+                // send counter offer
+                boolean success = connectionHandler.sendCounterOffer(offer.getTradeID(), selectedCards).get(10, TimeUnit.SECONDS);
+
+                if (success) {
+                    System.out.println("Counter-offer sent. Waiting for initiator to confirm");
+                } else {
+                    System.out.println("Failed to send counter-offer");
+                }
+            } else if (tradeStage.equals("counterOffer")) {
+                // counter-offer received - initiator needs to confirm
+                System.out.println("The recipient has counter-offered with these cards:");
+                displayCards(offer.getOfferedCards());
+
+                System.out.println("Do you want to accept this counter-offer? (y/n)");
+                String response = scanner.nextLine();
+
+                boolean confirmed = response.equalsIgnoreCase("y");
+
+                boolean success = connectionHandler.confirmTrade(offer.getTradeID(), confirmed).get(10, TimeUnit.SECONDS);
+
+                if (success) {
+                    System.out.println("Trade " + (confirmed ? "completed" : "rejected") + " successfully");
+                
+                    if (confirmed) {
+                        System.out.println("The cards have been exchanged!");
+                    }
+                } else {
+                    System.out.println("Failed to process traded confirmation");
+                }
+            }
+
+            System.out.println("Press enter to return to the main menu");
+            scanner.nextLine();
+        } catch (Exception e) {
+            System.err.println("Error initiating trade: " + e.getMessage());
+        } 
+    }
+
+    private static void displayCards(JSONArray cards) {
+        if (cards == null || cards.size() == 0) {
+            System.out.println("No cards found");
+            return;
+        }
+
+        for (int i = 0; i < cards.size(); i++) {
+            JSONObject card = (JSONObject) cards.get(i);
+            System.out.println("----------------------------------");
+            System.out.println("CardID: " + card.getString("cardID"));
+            System.out.println("Name: " + card.getString("name"));
+            System.out.println("Rarity: " + card.getInt("rarity"));
+            System.out.println("Image Link: " + card.getString("imageLink"));
+        }
+        System.out.println("----------------------------------");
     }
 }
