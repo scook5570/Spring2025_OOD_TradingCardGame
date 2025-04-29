@@ -4,16 +4,16 @@ import java.io.InvalidObjectException;
 import merrimackutil.json.types.JSONObject;
 import merrimackutil.json.types.JSONType;
 
-public class AvailableUserRequest extends Message {
+public class AvailableUsersRequest extends Message {
     
     private String username;
 
-    public AvailableUserRequest(String username) {
+    public AvailableUsersRequest(String username) {
         super("AvailableUsersRequest");
         this.username = username; 
     }
 
-    public AvailableUserRequest(JSONObject obj) {
+    public AvailableUsersRequest(JSONObject obj) {
         super(obj);
         if (!super.type.equals("AvailableUsersRequest")) {
             throw new IllegalArgumentException("Bad type: " + super.type);
