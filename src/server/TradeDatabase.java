@@ -214,6 +214,45 @@ public class TradeDatabase implements JSONSerializable {
     }
 
     /**
+     * updates a trade with counter-offer cards fro the recipient 
+     * @param tradeId
+     * @param recipientCards
+     * @return
+     */
+    public synchronized boolean addCounterOffer(String tradeId, JSONArray recipientCards) {
+        rwLock.writeLock().lock();
+        try {
+            JSONObject trade = pendingTrades.get(tradeId);
+            if (trade == null || !"pending".equals(trade.getString("status"))) {
+                return false; 
+            }
+
+            trade.put("recipientOfferedCards", recipientCards);
+            trade.put("status", "counterOffered");
+            save();
+            return true; 
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * get all users available for trading (excluding the current user)
+     * @param currentUsername
+     * @param userDatabase
+     * @return
+     */
+    public JSONArray getAvailableTradeUsers(String currentUsername, UserCredentials userDatabase) {
+        JSONArray users = new JSONArray();
+        for (String username : userDatabase.getAllUsernames()) {
+            if (!username.equals(currentUsername)) {
+                users.add(username);
+            }
+        }
+        return users; 
+    }
+
+    /**
      * get all cards that are currently locked in pending trades for a user
      * (prevents the same card from being included in multiple trades)
      * @param username

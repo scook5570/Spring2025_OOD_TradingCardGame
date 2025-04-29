@@ -34,7 +34,7 @@ public class TradeConfirmationRequest extends Message {
         return this.username;
     }
 
-    public boolean getConfirmed() {
+    public boolean isConfirmed() {
         return this.confirmed;
     }
 

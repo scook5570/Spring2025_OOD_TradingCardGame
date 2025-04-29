@@ -166,7 +166,163 @@ public class ServerConnectionHandler {
         }
         return tradeId; 
     }
+
+    /**
+     * handle counter offer from recipient 
+     * @param request
+     * @return
+     */
+    public boolean handleCounterOffer(CounterOfferRequest request) {
+        String tradeId = request.getTradeId();
+        String username = request.getUsername();
+        JSONArray offeredCards = request.getOfferedCards();
+
+        JSONObject trade = tradeDatabase.getTrade(tradeId);
+        if (trade == null || !"pending".equals(trade.getString("status"))) {
+            System.out.println("Counter offer failed: Trade not foundor not pending");
+            return false; 
+        }
+
+        // verify recipient 
+        String recipient = trade.getString("recipient");
+        if (!recipient.equals(username)) {
+            System.out.println("Counter offer failed: user is not recipient");
+            return false; 
+        }
+
+        // verufy card ownsership
+        try {
+            JSONArray userCards = userCardsDatabase.getUserCards(username);
+            for (int i = 0; i < offeredCards.size(); i++) {
+                JSONObject offeredCard = (JSONObject) offeredCards.get(i);
+                boolean cardFound = false;
+                for (int j = 0; j < userCards.size(); j++) {
+                    JSONObject userCard = (JSONObject) userCards.get(j);
+                    if (userCard.getString("cardID").equals(offeredCard.getString("cardID"))) {
+                        cardFound = true; 
+                        break;
+                    }
+                }
+
+                if (!cardFound) {
+                    System.out.println("Counter offer failed: Card not owned by user");
+                    return false; 
+                }
+
+            }
+         
+        } catch (InvalidObjectException e) {
+            System.err.println("Error verifying card ownership: " + e.getMessage());
+            return false; 
+        }
+
+        // update trade with counter offer
+        if (!tradeDatabase.addCounterOffer(tradeId, offeredCards)) {
+            return false; 
+        }
+
+        // notify initiator of counter offer
+        String initiator = trade.getString("initiator");
+        ClientHandler initiatorHandler = clients.get(initiator);
+        if (initiatorHandler != null) {
+            TradeOfferNotification notification = new TradeOfferNotification(tradeId, username, offeredCards, "counterOffer");
+            initiatorHandler.sendMessage(notification);
+        }
+
+        TradeLogger.getInstance().logTradeCounterOffer(tradeId, initiator, recipient, offeredCards);
+        return true;
+    }
+
+    /**
+     * handle trade confirmation from initiator
+     * @param request
+     * @return
+     */
+    public boolean handleTradeConfirmation(TradeConfirmationRequest request) {
+        String tradeId = request.getTradeId();
+        String username = request.getUsername();
+        boolean confirmed = request.isConfirmed();
+
+        JSONObject trade = tradeDatabase.getTrade(tradeId);
+        if (trade == null || !"counterOffered".equals(trade.getString("status"))) {
+            System.out.println("Confirmation failed: Trade not found or not counter-offered");
+            return false; 
+        }
+
+        // verify the initiator
+        String initiator= trade.getString("initiator");
+        if (!initiator.equals(username)) {
+            System.out.println("Confirmation failed: User id not the initiator");
+            return false; 
+        }
+
+        // update trade status 
+        tradeDatabase.updateTradeStatus(tradeId, confirmed ? "confirmed" : "rejected");
+
+        String recipient = trade.getString("recipient");
+
+        if (confirmed) {
+            // execute the bidirectional trade transaction
+            boolean success = executeBidirectionalTrade(tradeId);
+
+            if (!success) {
+                tradeDatabase.updateTradeStatus(tradeId, "failed");
+                TradeLogger.getInstance().logTradeFailure(tradeId, initiator, recipient, "Failed to execute card exchange");
+                return false;
+            }
+            TradeLogger.getInstance().logTradeCompletion(tradeId, initiator, recipient);
+        } else {
+            TradeLogger.getInstance().logTradeRejection(tradeId, initiator, recipient, "Initiator rejected the counter offer");
+        }
+
+        // notify the recipient of confirmation result
+        ClientHandler recipientHandler = clients.get(recipient);
+        if (recipientHandler != null) {
+            TradeResponse response = new TradeResponse(tradeId, confirmed, username);
+            recipientHandler.sendMessage(response);
+        }
+        return true; 
+    }
     
+    private synchronized boolean executeBidirectionalTrade(String tradeId) {
+        JSONObject trade = tradeDatabase.getTrade(tradeId);
+        if (trade == null) {
+            return false; 
+        }
+
+        String initiator = trade.getString("initiator");
+        String recipient = trade.getString("recipient");
+        JSONArray initiatorCards = trade.getArray("offeredCards");
+        JSONArray recipientCards = trade.getArray("recipientOfferedCards");
+
+        // lock all cards involved in the trade
+        if (!tradeDatabase.lockCardsForTrade(initiatorCards, tradeId)) {
+            return false;
+        }
+
+        if (!tradeDatabase.lockCardsForTrade(recipientCards, tradeId)) {
+            tradeDatabase.unlockCardsForTrade(tradeId);
+            return false; 
+        }
+
+        try { // fingers crossed
+            // first, remove cards from both users
+            userCardsDatabase.removeCards(initiator, initiatorCards);
+            userCardsDatabase.removeCards(recipient, recipientCards);
+        
+            // add the cards to both users
+            userCardsDatabase.addCards(recipient, initiatorCards);
+            userCardsDatabase.addCards(initiator, recipientCards);
+
+            return true; 
+        } catch (Exception e) {
+            System.err.println("Error executing bidirectional trade: " + e.getMessage());
+            return false;
+        } finally {
+            tradeDatabase.unlockCardsForTrade(tradeId);
+        }
+    }
+
     /**
      * handles trade response with transaction support 
      * @param response
