@@ -124,7 +124,7 @@ public class Client {
     }
 
     /**
-     * 
+     * handles the intitiation of a trading process
      * @param scanner
      * @param connectionHandler
      * @param username
@@ -137,7 +137,7 @@ public class Client {
     }
 
     /**
-     * 
+     * allows users to view trades addressed to them
      * @param scanner
      * @param connectionHandler
      * @param username

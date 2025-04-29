@@ -10,12 +10,14 @@ public class TradeOfferNotification extends Message {
     private String tradeId;
     private String senderUsername;
     private JSONArray offeredCards;
+    private String tradeStage; // added to track flow stage
 
-    public TradeOfferNotification(String tradeId, String senderUsername, JSONArray offeredCards) {
+    public TradeOfferNotification(String tradeId, String senderUsername, JSONArray offeredCards, String tradeStage) {
         super("TradeOfferNotification");
         this.tradeId = tradeId;
         this.senderUsername = senderUsername; 
         this.offeredCards = offeredCards; 
+        this.tradeStage = tradeStage; 
     }
 
     public TradeOfferNotification(JSONObject obj) {
@@ -37,6 +39,10 @@ public class TradeOfferNotification extends Message {
         return this.offeredCards;
     }
 
+    public String getTradeStage() {
+        return this.tradeStage; 
+    }
+
     @Override
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         super.deserialize(jsonType);
@@ -44,6 +50,7 @@ public class TradeOfferNotification extends Message {
         this.tradeId = jsonObject.getString("tradeId");
         this.senderUsername = jsonObject.getString("senderUsername");
         this.offeredCards = jsonObject.getArray("offeredCards");
+        this.tradeStage = jsonObject.getString("tradeStage");
     }
 
     @Override
@@ -52,6 +59,7 @@ public class TradeOfferNotification extends Message {
         jsonObject.put("tradeId", this.tradeId);
         jsonObject.put("senderUsername", this.senderUsername);
         jsonObject.put("offeredCards", this.offeredCards);
+        jsonObject.put("tradeStage", this.tradeStage); 
         return jsonObject;
     }
 

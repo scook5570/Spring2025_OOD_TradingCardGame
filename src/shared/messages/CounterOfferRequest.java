@@ -8,16 +8,14 @@ import merrimackutil.json.types.JSONType;
 
 public class CounterOfferRequest extends Message {
 
-    private String originalTradeId;
-    private String senderUsername; 
-    private String recipientUsername;
+    private String tradeId;
+    private String username; 
     private JSONArray offeredCards; 
     
-    public CounterOfferRequest(String originalTradeId, String senderUsername, String recipientUsername, JSONArray offeredCards) {
+    public CounterOfferRequest(String tradeId, String username, JSONArray offeredCards) {
         super("CounterOfferRequst");
-        this.originalTradeId = originalTradeId;
-        this.senderUsername = senderUsername; 
-        this.recipientUsername = recipientUsername;
+        this.tradeId = tradeId;
+        this.username = username;
         this.offeredCards = offeredCards;
     }
 
@@ -29,16 +27,12 @@ public class CounterOfferRequest extends Message {
     }
 
     // getters 
-    public String getOriginalTradeId() {
-        return this.originalTradeId; 
+    public String getTradeId() {
+        return this.tradeId; 
     }
 
-    public String getSenderUsername() {
-        return this.senderUsername; 
-    }
-
-    public String getRecipientUsername() {
-        return this.recipientUsername; 
+    public String getUsername() {
+        return this.username; 
     }
 
     public JSONArray getOfferedCards() {
@@ -49,18 +43,16 @@ public class CounterOfferRequest extends Message {
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         super.deserialize(jsonType);
         JSONObject jsonObject = (JSONObject) jsonType; 
-        this.originalTradeId = jsonObject.getString("originalTradeId");
-        this.senderUsername = jsonObject.getString("senderUsername");
-        this.recipientUsername = jsonObject.getString("recipientUsername");
+        this.tradeId = jsonObject.getString("tradeId");
+        this.username = jsonObject.getString("username");
         this.offeredCards = jsonObject.getArray("offeredCards");
     }
 
     @Override
     public JSONObject toJSONType() {
         JSONObject jsonObject = super.toJSONType();
-        jsonObject.put("originalTradeId", this.originalTradeId);
-        jsonObject.put("senderUsername", this.senderUsername);
-        jsonObject.put("recipientUsername", this.recipientUsername);
+        jsonObject.put("tradeId", this.tradeId);
+        jsonObject.put("username", this.username);
         jsonObject.put("offeredCards", offeredCards);
         return jsonObject;
     }
