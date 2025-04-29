@@ -91,6 +91,16 @@ public class MessageSocket extends Socket{
                 return new CollectionRequest(obj);
             case "CollectionResponse":
                 return new CollectionResponse(obj);
+            case "TradeRequest":
+                return new TradeRequest(obj);
+            case "TradeResponse":
+                return new TradeResponse(obj);
+            case "ServerTradeStatus":
+                return new ServerTradeStatus(obj);
+            case "ViewTradesRequest":
+                return new ViewTradesRequest(obj);
+            case "ViewTradesResponse":
+                return new ViewTradesResponse(obj);
            default:
                throw new RuntimeException("Message does not fit known type, got type: " + message.getType());
        }

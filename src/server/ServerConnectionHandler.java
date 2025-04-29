@@ -20,8 +20,10 @@ public class ServerConnectionHandler {
     private ConcurrentHashMap<String, ClientHandler> clients = new ConcurrentHashMap<>();
     private UserCredentials userCreds;
     private UserCardsDatabase userCardsDatabase;
+    private TradeRequestDatabase tradeRequestDatabase;
 
-    public void start(int port, UserCredentials userCreds, UserCardsDatabase userCardsDatabase) {
+    public void start(int port, UserCredentials userCreds, UserCardsDatabase userCardsDatabase,
+            TradeRequestDatabase tradeRequestDatabase) {
         this.userCreds = userCreds;
         this.userCardsDatabase = userCardsDatabase;
 
@@ -132,5 +134,80 @@ public class ServerConnectionHandler {
             System.err.println("Error retrieving user cards: " + e.getMessage());
         }
         return collection;
+    }
+
+    public void handleTradeRequest(TradeRequest tradeRequest) {
+        System.out.println(
+                "Trade request from " + tradeRequest.getRequesterID() + " to " + tradeRequest.getRecipientID());
+        try {
+            tradeRequestDatabase.addTradeRequest(tradeRequest.getRequesterID(), tradeRequest.getRecipientID(),
+                    tradeRequest.getOfferCardID(), null);
+        } catch (InvalidObjectException e) {
+            System.out.println("Error adding trade request to database: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void handleTradeResponse(TradeResponse tradeResponse) {
+        System.out
+                .println("Trade response status: " + tradeResponse.getStatus() + " for " + tradeResponse.getTradeKey());
+        if (!tradeResponse.getStatus()) {
+            System.out.println("Trade for " + tradeResponse.getTradeKey() + " was not accepted.");
+            try {
+                tradeRequestDatabase.removeTradeRequest(tradeResponse.getTradeKey());
+            } catch (InvalidObjectException e) {
+                System.out.println("Error removing trade request from database: " + e.getMessage());
+                e.printStackTrace();
+            }
+            return;
+        }
+
+        try {
+            tradeRequestDatabase.updateTradeRequest(tradeResponse.getTradeKey(), tradeResponse.getCardID());
+        } catch (InvalidObjectException e) {
+            System.out.println("Error updating trade request in database: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Handles the view trades request by retrieving all trade requests and responses for the user.
+     *
+     * @param viewTradesRequest The request containing the username of the user.
+     * @return A JSONArray containing all trade requests and responses for the user.
+     */
+    public JSONArray handleViewTradesRequest(ViewTradesRequest viewTradesRequest) {
+        // get all trade requests that contain the user as recipient or sender
+        JSONArray tradeRequests = new JSONArray();
+        tradeRequests.add(tradeRequestDatabase.getTradeRequests(viewTradesRequest.getUsername()));
+        tradeRequests.add(tradeRequestDatabase.getTradeResponses(viewTradesRequest.getUsername()));
+        return tradeRequests;
+
+    }
+
+    public void handleTradeConfirmation(TradeConfirmation tradeConfirmation) {
+        if (tradeConfirmation.getStatus()) {
+            System.out.println("Trade confirmed for " + tradeConfirmation.getTradeKey());
+            try {
+                JSONArray tradeInfo = tradeRequestDatabase.getTradeRequest(tradeConfirmation.getTradeKey());
+                String requesterID = tradeInfo.getString(1);
+                String recipientID = tradeInfo.getString(2);
+                String offerCardID = tradeInfo.getString(3);
+                String responseCardID = tradeInfo.getString(4);
+
+                // swap cards
+                userCardsDatabase.removeCard(requesterID, offerCardID);
+                userCardsDatabase.removeCard(recipientID, responseCardID);
+
+                userCardsDatabase.addCard(requesterID, responseCardID);
+                userCardsDatabase.addCard(recipientID, offerCardID);
+
+            } catch (InvalidObjectException e) {
+                System.out.println("Error removing trade request from database: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Trade not confirmed for " + tradeConfirmation.getTradeKey());
+        }
     }
 }

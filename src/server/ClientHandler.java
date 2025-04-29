@@ -47,7 +47,7 @@ public class ClientHandler implements Runnable {
                     }
                     break;
                 case "Register":
-                    if(server.handleRegistration(userCredRequest)) {
+                    if (server.handleRegistration(userCredRequest)) {
                         this.username = userCredRequest.getUsername();
                         server.addClient(this.username, this);
                         UserCredResponse response = new UserCredResponse(true);
@@ -82,8 +82,48 @@ public class ClientHandler implements Runnable {
                 default:
                     System.err.println("Unknown message type: " + recvMsg.getType());
             }
-        } else if (recvMsg instanceof CollectionResponse) {
-            // Handle CollectionResponse if needed
+        } else if (recvMsg instanceof TradeRequest) {
+            TradeRequest tradeRequest = (TradeRequest) recvMsg;
+            switch (recvMsg.getType()) {
+                case "TradeRequest":
+                    server.handleTradeRequest(tradeRequest);
+                    ServerTradeStatus response = new ServerTradeStatus(true, "Trade request added successfully.");
+                    sendMessage(response);
+                    break;
+                default:
+                    System.err.println("Unknown message type: " + recvMsg.getType());
+            }
+        } else if (recvMsg instanceof TradeResponse) {
+            TradeResponse tradeResponse = (TradeResponse) recvMsg;
+            switch (recvMsg.getType()) {
+                case "TradeResponse":
+                    server.handleTradeResponse(tradeResponse);
+                    ServerTradeStatus response = new ServerTradeStatus(true, "Trade response processed successfully.");
+                    sendMessage(response);
+                    break;
+                default:
+                    System.err.println("Unknown message type: " + recvMsg.getType());
+            }
+        } else if (recvMsg instanceof ViewTradesRequest) {
+            ViewTradesRequest viewTradesRequest = (ViewTradesRequest) recvMsg;
+            switch (recvMsg.getType()) {
+                case "ViewTradesRequest":
+                    JSONArray trades = server.handleViewTradesRequest(viewTradesRequest);
+                    ViewTradesResponse viewTradesResponse = new ViewTradesResponse(trades);
+                    sendMessage(viewTradesResponse);
+                    break;
+                default:
+                    System.err.println("Unknown message type: " + recvMsg.getType());
+            }
+        } else if (recvMsg instanceof TradeConfirmation) {
+            TradeConfirmation tradeConfirmation = (TradeConfirmation) recvMsg;
+            switch (recvMsg.getType()) {
+                case "TradeConfirmation":
+                    server.handleTradeConfirmation(tradeConfirmation);
+                    break;
+                default:
+                    System.err.println("Unknown message type: " + recvMsg.getType());
+            }
         } else {
             System.err.println("Unknown message type: " + recvMsg.getType());
         }

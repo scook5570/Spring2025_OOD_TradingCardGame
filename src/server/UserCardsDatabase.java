@@ -86,6 +86,25 @@ public class UserCardsDatabase implements JSONSerializable{
     }
 
     /**
+     * Removes a card from a user
+     */
+    public void removeCard(String username, String cardID) throws InvalidObjectException {
+        if (cards == null) {
+            return;
+        }
+        if (!cards.containsKey(username)) {
+            throw new InvalidObjectException("User does not exist in the database");
+        }
+        JSONArray userCards = cards.get(username);
+        if (userCards.contains(cardID)) {
+            userCards.remove(cardID);
+            save(); // Save the credentials to the file
+        } else {
+            throw new InvalidObjectException("Card does not exist for user");
+        }
+    }
+
+    /**
      * Get the cards of a user
      * @param username
      * @return JSONArray of cardIDs
@@ -138,5 +157,17 @@ public class UserCardsDatabase implements JSONSerializable{
         } catch (Exception e) {
             System.err.println("Error writing users file: " + e.getMessage());
         }
+    }
+
+    public void addCard(String requesterID, String responseCardID) {
+        if (cards == null) {
+            cards = new HashMap<>();
+        }
+        if (!cards.containsKey(requesterID)) {
+            cards.put(requesterID, new JSONArray());
+        }
+        JSONArray userCards = cards.get(requesterID);
+        userCards.add(responseCardID);
+        save(); // Save the credentials to the file
     }
 }
