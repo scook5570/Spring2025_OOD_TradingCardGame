@@ -79,6 +79,29 @@ public class TradeLogger {
     }
 
     /**
+     * log trade counter-offer
+     * @param tradeId
+     * @param initiator
+     * @param recipient
+     * @param cards
+     */
+    public void logTradeCounterOffer(String tradeId, String initiator, String recipient, JSONArray cards) {
+        String cardCount = cards != null ? String.valueOf(cards.size()) : "0";
+        log("COUNTER_OGGER", tradeId, recipient, initiator, "counterOffered", "Recipient " + recipient + " offered " + cardCount + " cards in return");
+
+        if (verboseLogging && cards != null) {
+            StringBuilder cardDetails = new StringBuilder("Counter-offered cards: ");
+            for (int i = 0; i < cards.size(); i++) {
+                if (i > 0) {
+                    cardDetails.append(", ");
+                }
+                cardDetails.append(cards.getObject(i).getString("cardID"));
+            }
+            log(tradeId, "CARDS_COUNTER_OFFERED", recipient, initiator, "counterOffered", cardDetails.toString());
+        }
+    }
+
+    /**
      * log trade creation
      * @param tradeId
      * @param initiator
