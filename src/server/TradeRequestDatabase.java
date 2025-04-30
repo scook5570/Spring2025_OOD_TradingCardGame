@@ -32,10 +32,18 @@ public class TradeRequestDatabase implements JSONSerializable {
                 System.err.println("Error creating users file: " + e.getMessage());
             }
         }
+
+        try {
+            // Read and deserialize JSON data
+            deserialize(JsonIO.readArray(this.file));
+        } catch (Exception e) {
+            System.err.println("Error reading users file: " + e.getMessage());
+        }
     }
 
     /**
      * Add a trade request to the database
+     * 
      * @param requesterID
      * @param recipientID
      * @param offerCardID
@@ -45,6 +53,7 @@ public class TradeRequestDatabase implements JSONSerializable {
      */
     public void addTradeRequest(String requesterID, String recipientID, String offerCardID, String responseCardID)
             throws InvalidObjectException {
+        System.out.println("Adding trade request: " + requesterID + " -> " + recipientID);
         if (tradeRequests == null) {
             tradeRequests = new HashMap<>();
         }
@@ -131,6 +140,7 @@ public class TradeRequestDatabase implements JSONSerializable {
             tradeRequests = new HashMap<>();
         }
         String key = tradeKey;
+        System.out.println("Removing trade request: " + key);
         if (!tradeRequests.containsKey(key)) {
             throw new InvalidObjectException("Trade request does not exist in the database");
         }
@@ -158,16 +168,28 @@ public class TradeRequestDatabase implements JSONSerializable {
 
     @Override
     public void deserialize(JSONType arg0) throws InvalidObjectException {
-        if (arg0 instanceof JSONArray) {
-            JSONArray jsonArray = (JSONArray) arg0;
-            tradeRequests = new HashMap<>();
-            for (int i = 0; i < jsonArray.size(); i++) {
-                JSONArray tradeRequest = (JSONArray) jsonArray.get(i);
-                String key = tradeRequest.getString(1) + tradeRequest.getString(2); // requesterID + recipientID
-                tradeRequests.put(key, tradeRequest);
+        if (!(arg0 instanceof JSONArray)) {
+            throw new InvalidObjectException("Expected a JSONArray for deserialization");
+        }
+
+        JSONArray jsonArray = (JSONArray) arg0;
+        tradeRequests = new HashMap<>();
+
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JSONArray tradeRequest = (JSONArray) jsonArray.get(i);
+            if (tradeRequest.size() != 6) {
+                throw new InvalidObjectException("Invalid trade request format");
             }
-        } else {
-            throw new InvalidObjectException("Invalid JSON type for TradeRequestDatabase");
+
+            String key = (String) tradeRequest.get(0); // key
+            JSONArray tradeInfo = new JSONArray();
+            tradeInfo.add(tradeRequest.get(1)); // type
+            tradeInfo.add(tradeRequest.get(2)); // requesterID
+            tradeInfo.add(tradeRequest.get(3)); // recipientID
+            tradeInfo.add(tradeRequest.get(4)); // offerCardID
+            tradeInfo.add(tradeRequest.get(5)); // responseCardID
+
+            tradeRequests.put(key, tradeInfo);
         }
     }
 

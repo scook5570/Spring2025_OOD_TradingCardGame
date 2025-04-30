@@ -26,6 +26,7 @@ public class UserCredResponse extends Message {
         if (!super.type.equals("Status")) {
             throw new IllegalArgumentException("Bad type: " + super.type);
         }
+        this.status = obj.getBoolean("status");
     }
 
     public boolean isSuccess() {

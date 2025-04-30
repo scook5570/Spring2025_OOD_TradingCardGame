@@ -26,11 +26,14 @@ public class ServerConnectionHandler {
             TradeRequestDatabase tradeRequestDatabase) {
         this.userCreds = userCreds;
         this.userCardsDatabase = userCardsDatabase;
+        this.tradeRequestDatabase = tradeRequestDatabase;
 
         try {
             serverSocket = new ServerSocket(port);
+            System.out.println("Server started on port " + port); // Add this line
             while (true) {
                 Socket clientSocket = serverSocket.accept();
+                System.out.println("Client connected: " + clientSocket.getInetAddress()); // Add this line
                 ClientHandler handler = new ClientHandler(clientSocket, this);
                 new Thread(handler).start();
             }
@@ -171,18 +174,29 @@ public class ServerConnectionHandler {
     }
 
     /**
-     * Handles the view trades request by retrieving all trade requests and responses for the user.
+     * Handles the view trades request by retrieving all trade requests and
+     * responses for the user.
      *
      * @param viewTradesRequest The request containing the username of the user.
      * @return A JSONArray containing all trade requests and responses for the user.
      */
     public JSONArray handleViewTradesRequest(ViewTradesRequest viewTradesRequest) {
-        // get all trade requests that contain the user as recipient or sender
-        JSONArray tradeRequests = new JSONArray();
-        tradeRequests.add(tradeRequestDatabase.getTradeRequests(viewTradesRequest.getUsername()));
-        tradeRequests.add(tradeRequestDatabase.getTradeResponses(viewTradesRequest.getUsername()));
-        return tradeRequests;
+        JSONArray flatTrades = new JSONArray();
 
+        // Flatten trade requests
+        JSONArray requests = tradeRequestDatabase.getTradeRequests(viewTradesRequest.getUsername());
+        for (int i = 0; i < requests.size(); i++) {
+            flatTrades.add(requests.get(i)); // each entry is a JSONArray
+        }
+
+        // Flatten trade responses
+        JSONArray responses = tradeRequestDatabase.getTradeResponses(viewTradesRequest.getUsername());
+        for (int i = 0; i < responses.size(); i++) {
+            flatTrades.add(responses.get(i));
+        }
+
+        System.out.println("Flat trade list for " + viewTradesRequest.getUsername() + ": " + flatTrades.toString());
+        return flatTrades;
     }
 
     public void handleTradeConfirmation(TradeConfirmation tradeConfirmation) {
@@ -196,18 +210,49 @@ public class ServerConnectionHandler {
                 String responseCardID = tradeInfo.getString(4);
 
                 // swap cards
+                System.out.println("Swapping cards: " + requesterID + " -> " + recipientID);
+                System.out.println("Offer card ID: " + offerCardID + ", Response card ID: " + responseCardID);
                 userCardsDatabase.removeCard(requesterID, offerCardID);
                 userCardsDatabase.removeCard(recipientID, responseCardID);
 
-                userCardsDatabase.addCard(requesterID, responseCardID);
-                userCardsDatabase.addCard(recipientID, offerCardID);
+                // Load cards from cards.json
+                JSONArray cardArray = JsonIO.readArray(new File("src/server/cardinfo/cards.json")); // hard coded path cause im lazy
+                HashMap<String, Card> cardsMap = new HashMap<>();
+
+                // Populate the cardsMap
+                for (int i = 0; i < cardArray.size(); i++) {
+                    JSONObject card = (JSONObject) cardArray.get(i);
+                    String cardID = card.getString("cardID");
+                    String name = card.getString("name");
+                    int rarity = card.getInt("rarity");
+                    String imageLink = card.getString("imageLink");
+                    cardsMap.put(cardID, new Card(cardID, name, rarity, imageLink));
+                }
+
+                // Query card info from cardsMap
+                Card offerCard = cardsMap.get(offerCardID);
+                Card responseCard = cardsMap.get(responseCardID);
+
+                userCardsDatabase.addCard(requesterID, responseCard.getCardID(), responseCard.getName(),
+                        responseCard.getRarity(), responseCard.getImage());
+                userCardsDatabase.addCard(recipientID, offerCard.getCardID(), offerCard.getName(),
+                        offerCard.getRarity(), offerCard.getImage());
 
             } catch (InvalidObjectException e) {
                 System.out.println("Error removing trade request from database: " + e.getMessage());
+                e.printStackTrace();
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         } else {
             System.out.println("Trade not confirmed for " + tradeConfirmation.getTradeKey());
         }
+    }
+
+    public JSONArray handleUserListRequest(UserListRequest userListRequest) {
+        JSONArray userList = new JSONArray();
+        userList = userCardsDatabase.getAllUsers();
+        return userList;
     }
 }

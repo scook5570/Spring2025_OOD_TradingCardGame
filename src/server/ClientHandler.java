@@ -29,6 +29,7 @@ public class ClientHandler implements Runnable {
         Message recvMsg;
         // Receive the message from the client
         recvMsg = msgSocket.getMessage();
+        System.out.println("Received message: " + recvMsg.getType());
 
         if (recvMsg instanceof UserCredRequest) {
             UserCredRequest userCredRequest = (UserCredRequest) recvMsg;
@@ -83,9 +84,12 @@ public class ClientHandler implements Runnable {
                     System.err.println("Unknown message type: " + recvMsg.getType());
             }
         } else if (recvMsg instanceof TradeRequest) {
+            System.out.println("Trade request received");
             TradeRequest tradeRequest = (TradeRequest) recvMsg;
             switch (recvMsg.getType()) {
                 case "TradeRequest":
+                    System.out.println("Trade request from " + tradeRequest.getRequesterID() + " to "
+                            + tradeRequest.getRecipientID());
                     server.handleTradeRequest(tradeRequest);
                     ServerTradeStatus response = new ServerTradeStatus(true, "Trade request added successfully.");
                     sendMessage(response);
@@ -120,6 +124,17 @@ public class ClientHandler implements Runnable {
             switch (recvMsg.getType()) {
                 case "TradeConfirmation":
                     server.handleTradeConfirmation(tradeConfirmation);
+                    break;
+                default:
+                    System.err.println("Unknown message type: " + recvMsg.getType());
+            }
+        } else if (recvMsg instanceof UserListRequest) {
+            UserListRequest userListRequest = (UserListRequest) recvMsg;
+            switch (recvMsg.getType()) {
+                case "UserListRequest":
+                    JSONArray userList = server.handleUserListRequest(userListRequest);
+                    UserListResponse userListResponse = new UserListResponse(userList);
+                    sendMessage(userListResponse);
                     break;
                 default:
                     System.err.println("Unknown message type: " + recvMsg.getType());

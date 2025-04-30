@@ -19,6 +19,9 @@ public class TradeResponse extends Message {
         if (!super.type.equals("TradeResponse")) {
             throw new IllegalArgumentException("Bad type: " + super.type);
         }
+        this.status = obj.getBoolean("status");
+        this.tradeKey = obj.getString("tradeKey");
+        this.cardID = obj.getString("cardID");
     }
 
     public boolean getStatus() {
@@ -31,6 +34,15 @@ public class TradeResponse extends Message {
 
     public String getCardID() {
         return cardID;
+    }
+
+    @Override
+    public void deserialize(merrimackutil.json.types.JSONType jsonType) throws java.io.InvalidObjectException {
+        super.deserialize(jsonType);
+        JSONObject jsonObject = (JSONObject) jsonType;
+        this.status = jsonObject.getBoolean("status");
+        this.tradeKey = jsonObject.getString("tradeKey");
+        this.cardID = jsonObject.getString("cardID");
     }
 
     @Override
