@@ -87,7 +87,8 @@ public class ServerConnectionHandler {
             String name = card.getString("name");
             int rarity = card.getInt("rarity");
             String imageLink = card.getString("imageLink");
-            cardsMap.put(cardID, new Card(cardID, name, rarity, imageLink));
+            String pack = card.getString("pack"); // Assuming the pack is also in the JSON
+            cardsMap.put(cardID, new Card(cardID, name, rarity, imageLink, pack));
         }
 
         JSONArray cardPack = new JSONArray();
@@ -95,19 +96,22 @@ public class ServerConnectionHandler {
 
         // Randomly select cards
         for (int i = 0; i < cardCount; i++) {
+            int attempts = 0;
+            while (attempts < 10) { // Limit attempts to avoid infinite loops
             int randomIndex = (int) (Math.random() * cardsMap.size());
             String cardID = (String) cardsMap.keySet().toArray()[randomIndex];
             Card card = cardsMap.get(cardID);
 
-            if (card != null) {
+            if (card != null && card.getPack().equals(packRequest.getPackName())) {
                 JSONObject cardJSON = new JSONObject();
                 cardJSON.put("cardID", card.getCardID());
                 cardJSON.put("name", card.getName());
                 cardJSON.put("rarity", card.getRarity());
                 cardJSON.put("imageLink", card.getImage());
                 cardPack.add(cardJSON);
-            } else {
-                System.err.println("Card with ID " + cardID + " is null.");
+                break;
+            }
+            attempts++;
             }
         }
 
