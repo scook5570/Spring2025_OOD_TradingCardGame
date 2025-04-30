@@ -1,0 +1,135 @@
+@startuml
+
+package client {
+    class Client {
+        +main(String[]): void
+    }
+}
+
+package shared {
+    class MessageSocket {
+        +MessageSocket(Socket)
+        +sendMessage(Message): void
+        +getMessage(): Message
+        +close(): void
+    }
+}
+
+package shared.messages {
+    abstract class Message {
+        +getType(): String
+        +toJSONType(): JSONObject
+        +deserialize(JSONType): void
+    }
+
+    class UserCredRequest {
+        +getUsername(): String
+        +getPassword(): String
+    }
+
+    class UserCredResponse {
+        +isSuccess(): boolean
+    }
+
+    class PackRequest {
+        +getUsername(): String
+        +getPackName(): String
+        +getCardCount(): int
+    }
+
+    class PackResponse {
+        +getCards(): JSONArray
+    }
+
+    class CollectionRequest {
+        +getUsername(): String
+    }
+
+    class CollectionResponse {
+        +getCollection(): JSONArray
+    }
+
+    class UserListRequest {
+        // No additional methods
+    }
+
+    class UserListResponse {
+        +getUsers(): JSONArray
+    }
+
+    class TradeRequest {
+        +getRequesterID(): String
+        +getRecipientID(): String
+        +getOfferCardID(): String
+    }
+
+    class TradeResponse {
+        +getStatus(): boolean
+        +getTradeKey(): String
+        +getCardID(): String
+    }
+
+    class TradeConfirmation {
+        +getTradeKey(): String
+        +getStatus(): boolean
+    }
+
+    class ViewTradesRequest {
+        +getUsername(): String
+    }
+
+    class ViewTradesResponse {
+        +getTrades(): JSONArray
+    }
+
+    class ServerTradeStatus {
+        +getStatus(): boolean
+        +getMessage(): String
+    }
+}
+
+' JSON packages
+package merrimackutil.json.types {
+    class JSONObject {
+        +getString(String): String
+        +getInt(String): int
+        +put(String, Object): void
+    }
+    class JSONArray {
+        +size(): int
+        +get(int): Object
+        +getArray(int): JSONArray
+        +getString(int): String
+        +add(Object): void
+    }
+}
+
+' Relationships
+Client --> MessageSocket
+Client --> UserCredRequest
+Client --> UserCredResponse
+Client --> PackRequest
+Client --> PackResponse
+Client --> CollectionRequest
+Client --> CollectionResponse
+Client --> UserListRequest
+Client --> UserListResponse
+Client --> TradeRequest
+Client --> TradeResponse
+Client --> TradeConfirmation
+Client --> ViewTradesRequest
+Client --> ViewTradesResponse
+Client --> ServerTradeStatus
+Client --> JSONObject
+Client --> JSONArray
+
+MessageSocket --> Message
+UserCredResponse --> Message
+PackResponse --> Message
+CollectionResponse --> Message
+UserListResponse --> Message
+ViewTradesResponse --> Message
+ServerTradeStatus --> Message
+TradeResponse --> Message
+
+@enduml

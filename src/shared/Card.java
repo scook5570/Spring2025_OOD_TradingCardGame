@@ -38,8 +38,22 @@ public class Card extends JPanel {
         super.paintComponent(g);
         try {
             // get image
-            File imageFile = Paths.get(this.image).toFile();
-            g.drawImage(ImageIO.read(imageFile), 0, 0, this);
+            File imageFile = Paths.get(System.getProperty("user.dir"), "src/server/cardinfo/images/", this.name + ".png").toFile();
+            Image img = ImageIO.read(imageFile);
+            if (img == null) {
+                throw new IOException("ImageIO.read returned null for file: " + imageFile);
+            }
+
+            double scaleWidth = (double) this.getWidth() / img.getWidth(null);
+            double scaleHeight = (double) this.getHeight() / img.getHeight(null);
+            double scale = Math.min(scaleWidth, scaleHeight);
+
+            int newWidth = (int) (img.getWidth(null) * scale);
+            int newHeight = (int) (img.getHeight(null) * scale);
+
+            int x = (this.getWidth() - newWidth) / 2;
+            int y = (this.getHeight() - newHeight) / 2;
+            g.drawImage(img, x, y, newWidth, newHeight, this);
         } catch (IOException e) {
             g.setColor(Color.WHITE);
             // add font

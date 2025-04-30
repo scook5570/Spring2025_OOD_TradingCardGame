@@ -8,7 +8,9 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             // Temporary turned off for testing pusposes
             // new LoginDialog();
+
             new MainFrame("Britogears");
+
             // try {
             //     new GameWindow("asfihw k");
             // } catch (IOException e) {

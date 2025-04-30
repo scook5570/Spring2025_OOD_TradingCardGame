@@ -48,9 +48,7 @@ public class MenuButtons extends JPanel {
         JButton tradeButton = new JButton("Trade");
         tradeButton.setPreferredSize(new Dimension(100, 50));
         tradeButton.setFocusPainted(false);
-        tradeButton.addActionListener(e -> {
-            // TODO: Change to Trading panel when implemented
-        });
+        tradeButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.TRADE));
 
         // Add all buttons to the panel
         add(collectionButton);

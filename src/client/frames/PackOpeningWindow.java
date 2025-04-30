@@ -24,6 +24,11 @@ public class PackOpeningWindow extends JFrame {
             cardsPanel.add(card);
         }
 
+
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
+
+
         JScrollPane scrollPane = new JScrollPane(cardsPanel);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);

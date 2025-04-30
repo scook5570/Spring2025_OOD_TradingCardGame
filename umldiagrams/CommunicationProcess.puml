@@ -1,0 +1,75 @@
+@startuml
+actor User
+participant Client
+participant "MessageSocket\n(Socket)" as Socket
+participant Server
+database "Server DB" as DB
+
+== Login/Register Flow ==
+User -> Client: chooses Login/Register
+Client -> Socket: new Socket("localhost", 5000)
+Client -> Socket: send(UserCredRequest)
+Socket -> Server: UserCredRequest
+Server -> DB: validate credentials
+DB --> Server: success/fail
+Server -> Socket: UserCredResponse
+Socket -> Client: UserCredResponse
+Client -> User: "Login successful" or "failed"
+Client -> Socket: close()
+
+== Open Pack ==
+User -> Client: selects "Open a pack"
+Client -> Socket: new Socket()
+Client -> Socket: send(PackRequest)
+Socket -> Server: PackRequest
+Server -> DB: getRandomCards()
+DB --> Server: JSONArray of cards
+Server -> Socket: PackResponse
+Socket -> Client: PackResponse
+Client -> User: display cards
+Client -> Socket: close()
+
+== View Collection ==
+User -> Client: selects "Get collection"
+Client -> Socket: new Socket()
+Client -> Socket: send(CollectionRequest)
+Socket -> Server: CollectionRequest
+Server -> DB: getUserCards()
+DB --> Server: JSONArray of cards
+Server -> Socket: CollectionResponse
+Socket -> Client: CollectionResponse
+Client -> User: display collection
+Client -> Socket: close()
+
+== Send Trade ==
+User -> Client: selects "Send trade"
+Client -> Socket: send(UserListRequest)
+Socket -> Server: UserListRequest
+Server -> DB: getAllUsers()
+Server -> Socket: UserListResponse
+Socket -> Client: UserListResponse
+
+User -> Client: chooses user + card
+Client -> Socket: send(TradeRequest)
+Socket -> Server: TradeRequest
+Server -> DB: storeTradeRequest()
+Server -> Socket: ServerTradeStatus
+Socket -> Client: ServerTradeStatus
+Client -> User: "Trade sent"
+
+== Respond to Trade ==
+User -> Client: selects trade response
+Client -> Socket: send(ViewTradesRequest)
+Socket -> Server: ViewTradesRequest
+Server -> DB: getPendingTrades(username)
+Server -> Socket: ViewTradesResponse
+Socket -> Client: ViewTradesResponse
+
+User -> Client: selects trade to respond
+Client -> Socket: send(TradeResponse)
+Socket -> Server: TradeResponse
+Server -> DB: updateTradeResponse()
+Server -> Socket: ServerTradeStatus
+Socket -> Client: ServerTradeStatus
+
+@enduml

@@ -22,7 +22,9 @@ import shared.messages.*;
 public class HomePanel extends TCGPanel {
 
     private JPanel[] packPanels;
+
     private MyMouseListener[] mouseListeners;
+
     private JPanel carouselPanel;
     private int currentIndex = 1;
 
@@ -35,8 +37,10 @@ public class HomePanel extends TCGPanel {
     public HomePanel(MainFrame parentFrame, String username) {
         super(parentFrame, username);
 
+
         // Create the card carousel panel and add the entire centerWrapper to the main
         // panel
+
         addMainComponent(createCarouselPanel(), true);
     }
 
@@ -49,6 +53,7 @@ public class HomePanel extends TCGPanel {
         // Create the array of panels for the carousel
         packPanels = new JPanel[3];
         mouseListeners = new MyMouseListener[3];
+
         Dimension centerPackSize = new Dimension(200, 300);
         Dimension sidePackSize = new Dimension(160, 240);
 
@@ -58,17 +63,23 @@ public class HomePanel extends TCGPanel {
 
         carouselPanel = new JPanel();
         carouselPanel.setLayout(new BoxLayout(carouselPanel, BoxLayout.X_AXIS));
-        carouselPanel.setBackground(new Color(217, 217, 217));
+
+        //carouselPanel.setBackground(new Color(217, 217, 217));
+        carouselPanel.setOpaque(false);
         renderCarousel();
 
         JPanel centerWrapper = new JPanel(new GridBagLayout());
-        centerWrapper.setBackground(new Color(217, 217, 217));
+        //centerWrapper.setBackground(new Color(217, 217, 217));
+        centerWrapper.setOpaque(false);
+
         centerWrapper.add(carouselPanel);
 
         Font largeFont = new Font("Arial", Font.BOLD, 50);
 
         // These may have to be adjusted based on compatibility, we'll see
-        JButton leftButton = new JButton("◀");
+
+        JButton leftButton = new JButton("<");
+
         createNavButtons(largeFont, leftButton);
 
         leftButton.addActionListener(e -> {
@@ -76,7 +87,8 @@ public class HomePanel extends TCGPanel {
             renderCarousel();
         });
 
-        JButton rightButton = new JButton("▶");
+
+        JButton rightButton = new JButton(">");
         createNavButtons(largeFont, rightButton);
 
         rightButton.addActionListener(e -> {
@@ -86,12 +98,15 @@ public class HomePanel extends TCGPanel {
 
         // Create a wrapper panel that holds left button, carousel, and right button
         JPanel fullWrapper = new JPanel(new BorderLayout());
-        fullWrapper.setBackground(new Color(217, 217, 217));
+
+        //fullWrapper.setBackground(new Color(217, 217, 217));
+        fullWrapper.setOpaque(false);
         fullWrapper.add(leftButton, BorderLayout.WEST);
         fullWrapper.add(centerWrapper, BorderLayout.CENTER);
         fullWrapper.add(rightButton, BorderLayout.EAST);
 
         return fullWrapper;
+
     }
 
     /**
@@ -205,6 +220,7 @@ public class HomePanel extends TCGPanel {
      * @param color The color of the pack (for debugging)
      * @return The pack panel
      */
+
     private JPanel createPackPanel(Dimension size, Color color) {
         JPanel pack = new JPanel();
         pack.setPreferredSize(size);
