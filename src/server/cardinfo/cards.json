@@ -114,7 +114,7 @@
     },
     {
         "cardID": "card017",
-        "name": "King Ronnie",
+        "name": "King Robbie",
         "rarity": 2,
         "imageLink": "src/server/cardinfo/images/kingrobbie.png",
         "pack": "Strong"
