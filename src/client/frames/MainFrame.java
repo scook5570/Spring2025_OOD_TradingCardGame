@@ -7,6 +7,7 @@ import javax.swing.*;
 
 import client.panels.CollectionPanel;
 import client.panels.HomePanel;
+import client.panels.TradePanel;
 import client.utils.TCGUtils;
 
 /**
@@ -57,6 +58,7 @@ public class MainFrame extends JFrame {
         // Add Home and Collection panels to the main panel with identifiers
         mainPanel.add(new HomePanel(this, this.username), TCGUtils.HOME);
         mainPanel.add(new CollectionPanel(this, this.username), TCGUtils.COLLECTION);
+        mainPanel.add(new TradePanel(this, this.username), TCGUtils.TRADE);
 
         // Add the main panel to the frame
         add(mainPanel);
@@ -74,6 +76,19 @@ public class MainFrame extends JFrame {
      */
     public void showPanel(String panelName) {
         cardLayout.show(mainPanel, panelName);
+    }
+
+    /**
+     * Sets the current panel to a different panel, replacing the existing one
+     * @param panel new panel to be set as current
+     */
+    public void setPanel(JPanel panel) {
+        getContentPane().removeAll();
+
+        getContentPane().add(panel);
+
+        revalidate();
+        repaint();
     }
 
     /**

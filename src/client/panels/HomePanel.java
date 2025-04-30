@@ -65,7 +65,7 @@ public class HomePanel extends TCGPanel {
         Font largeFont = new Font("Arial", Font.BOLD, 50);
 
         // These may have to be adjusted based on compatibility, we'll see
-        JButton leftButton = new JButton("◀");
+        JButton leftButton = new JButton("<");
         createNavButtons(largeFont, leftButton);
 
         leftButton.addActionListener(e -> {
@@ -73,7 +73,7 @@ public class HomePanel extends TCGPanel {
             renderCarousel();
         });
 
-        JButton rightButton = new JButton("▶");
+        JButton rightButton = new JButton(">");
         createNavButtons(largeFont, rightButton);
 
         rightButton.addActionListener(e -> {
