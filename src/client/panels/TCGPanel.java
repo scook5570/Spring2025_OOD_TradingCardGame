@@ -70,6 +70,7 @@ public class TCGPanel extends JPanel {
     public void addMainComponent(JComponent component) {
         // Set the component's preferred size to a percentage of the screen size
         component.setPreferredSize(new Dimension((int) (this.rect.width * 0.7), (int) (this.rect.height * 0.7)));
+        component.setVisible(true);
 
         // Position the component in the layout, centered
         gbc.gridy = 1; 

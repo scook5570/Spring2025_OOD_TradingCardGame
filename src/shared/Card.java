@@ -29,6 +29,8 @@ public class Card extends JPanel {
         this.rarity = rarity;
         this.image = image;
         setPreferredSize(dimension);
+        setVisible(true);
+        // System.out.println(image);
     }
 
     @Override
@@ -36,16 +38,17 @@ public class Card extends JPanel {
         super.paintComponent(g);
         try {
             // get image
-            File imageFile = Paths.get(System.getProperty("user.dir"), "assets", this.name + ".png").toFile();
+            File imageFile = Paths.get(this.image).toFile();
             g.drawImage(ImageIO.read(imageFile), 0, 0, this);
         } catch (IOException e) {
             g.setColor(Color.WHITE);
             // add font
-            g.setFont(new Font("Arial", Font.BOLD, 20));
+            g.setFont(new Font("Arial", Font.BOLD, 16));
             g.setColor(new Color(0, 0, 0));
             FontMetrics metrics = getFontMetrics(g.getFont());
+            String message = this.name + " Not Found";
             // Display Image Not Found
-            g.drawString("Image Not Found", ((int) dimension.getWidth() - metrics.stringWidth("Image Not Found")) / 2,
+            g.drawString(message, ((int) dimension.getWidth() - metrics.stringWidth(message)) / 2,
                     (int) dimension.getHeight() / 12);
             // Print error
             e.printStackTrace();
