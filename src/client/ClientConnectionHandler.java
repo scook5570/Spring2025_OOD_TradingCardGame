@@ -223,6 +223,28 @@ public class ClientConnectionHandler {
     }
 
     /**
+     * requests a list of users available for trading 
+     * @return
+     */
+    public CompletableFuture<JSONArray> getAvailableTradeUsers() {
+        System.out.println("Getting available users for trading...");
+        CompletableFuture<JSONArray> future = new CompletableFuture<>();
+
+        Consumer<AvailableUsersResponse> listener = response -> {
+            JSONArray users = response.getUsers();
+            System.out.println("Received list of " + users.size() + " availalbe users");
+            future.complete(users);
+        };
+
+        EventBus.getInstance().subscribe(EventType.AVAILABLE_USER_RESPONSE, listener);
+    
+        AvailableUsersRequest request = new AvailableUsersRequest(this.username);
+        sendMessage(request);
+
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.AVAILABLE_USER_RESPONSE, listener));
+    }
+
+    /**
      * Validate username and password format using regex 
      * @param username
      * @param password
@@ -476,7 +498,7 @@ public class ClientConnectionHandler {
         CompletableFuture<CounterOfferRequest> future = new CompletableFuture<>();
 
         Consumer<CounterOfferRequest> listener = offer -> {
-            System.out.println("Received counteroffer for trade: " + offer.getOriginalTradeId()); // <- getTradeId???
+            System.out.println("Received counteroffer for trade: " + offer.getTradeId()); // <- getTradeId???
             future.complete(offer);
         };
 

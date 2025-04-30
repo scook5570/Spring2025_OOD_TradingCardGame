@@ -159,7 +159,7 @@ public class ServerConnectionHandler {
         ClientHandler recipientHandler  = clients.get(recipient);
         if (recipientHandler != null) {
             System.out.println("DEBUG: Sending notification to " + recipient);
-            TradeOfferNotification notification = new TradeOfferNotification(tradeId, sender, offeredCards);
+            TradeOfferNotification notification = new TradeOfferNotification(tradeId, sender, offeredCards, "initial");
             recipientHandler.sendMessage(notification);
         } else {
             System.out.println("DEBUG: Recipient handler is null, cannot send notification");

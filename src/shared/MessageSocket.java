@@ -97,6 +97,14 @@ public class MessageSocket extends Socket{
                 return new TradeOfferNotification(obj);
             case "TradeResponse":
                 return new TradeResponse(obj);
+            case "CounterOfferRequest": 
+                return new CounterOfferRequest(obj);
+            case "TradeConfirmationRequest":
+                return new TradeConfirmationRequest(obj);
+            case "AvailableUsersRequest": 
+                return new AvailableUsersRequest(obj);
+            case "AvailableUsersResponse": 
+                return new AvailableUsersResponse(obj);
            default:
                throw new RuntimeException("Message does not fit known type, got type: " + message.getType());
        }

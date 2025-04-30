@@ -13,7 +13,7 @@ public class CounterOfferRequest extends Message {
     private JSONArray offeredCards; 
     
     public CounterOfferRequest(String tradeId, String username, JSONArray offeredCards) {
-        super("CounterOfferRequst");
+        super("CounterOfferRequest");
         this.tradeId = tradeId;
         this.username = username;
         this.offeredCards = offeredCards;

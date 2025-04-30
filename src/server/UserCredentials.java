@@ -2,7 +2,10 @@ package server;
 
 import java.io.File;
 import java.io.InvalidObjectException;
+
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import merrimackutil.json.JSONSerializable;
 import merrimackutil.json.JsonIO;
@@ -54,6 +57,17 @@ public class UserCredentials implements JSONSerializable {
         }
         credentials.put(username, password);
         save(); // Save the credentials to the file
+    }
+
+    /**
+     * returns a set of all usernames in the credentials database
+     * @return
+     */
+    public Set<String> getAllUsernames() {
+        if (credentials == null) {
+            return new HashSet<>();
+        }
+        return new HashSet<>(credentials.keySet());
     }
 
     /**
