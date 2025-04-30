@@ -16,8 +16,8 @@ import client.utils.TCGUtils;
  * information and the bottom menu.
  */
 public class TCGPanel extends JPanel {
-    public MainFrame parentFrame; 
-    public String username; 
+    public MainFrame parentFrame;
+    public String username;
     public GridBagConstraints gbc;
     public Rectangle rect;
 
@@ -29,10 +29,10 @@ public class TCGPanel extends JPanel {
      */
     public TCGPanel(MainFrame parentFrame, String username) {
         super();
-        this.parentFrame = parentFrame; 
-        this.username = username; 
-        this.rect = this.parentFrame.getRect(); 
-        setLayout(new GridBagLayout()); 
+        this.parentFrame = parentFrame;
+        this.username = username;
+        this.rect = this.parentFrame.getRect();
+        setLayout(new GridBagLayout());
         setBackground(TCGUtils.BACKGROUND_COLOR);
 
         // Create the user information panel (displays username and profile picture)
@@ -70,9 +70,36 @@ public class TCGPanel extends JPanel {
     public void addMainComponent(JComponent component) {
         // Set the component's preferred size to a percentage of the screen size
         component.setPreferredSize(new Dimension((int) (this.rect.width * 0.7), (int) (this.rect.height * 0.7)));
+        component.setVisible(true);
 
         // Position the component in the layout, centered
-        gbc.gridy = 1; 
+        gbc.gridy = 1;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.weighty = 1; // Let it take up vertical space for centering
+        gbc.anchor = GridBagConstraints.CENTER;
+        add(component, gbc);
+
+        resetGBC();
+    }
+
+    /**
+     * Adds a main component (e.g., collection, carousel) to the panel.
+     * The component is centered and sized relative to the screen size.
+     * 
+     * @param component The component to be added (JComponent)
+     * @param fill      wheather it should fill horizonatally
+     */
+    public void addMainComponent(JComponent component, boolean fill) {
+        // Set the component's preferred size to a percentage of the screen size
+        component.setPreferredSize(new Dimension((int) (this.rect.width * 0.7), (int) (this.rect.height * 0.7)));
+        component.setVisible(true);   
+        
+        if (fill) {
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+        }
+
+        // Position the component in the layout, centered
+        gbc.gridy = 1;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         gbc.weighty = 1; // Let it take up vertical space for centering
         gbc.anchor = GridBagConstraints.CENTER;

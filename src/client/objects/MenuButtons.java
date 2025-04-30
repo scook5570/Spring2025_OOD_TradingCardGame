@@ -27,26 +27,27 @@ public class MenuButtons extends JPanel {
         setBackground(TCGUtils.BACKGROUND_COLOR);
 
         // Create "Gallery" button (collection panel)
-        JButton collectionButton = new JButton("Gallery");
+        JButton collectionButton = new JButton("Collection");
         collectionButton.setPreferredSize(new Dimension(100, 50));
         collectionButton.setFocusPainted(false); // Remove focus border around text
         // Switch to Collection panel
-        collectionButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.COLLECTION));
+        collectionButton.addActionListener(e -> {
+            this.parentFrame.collectionPanel.refreshCollection();
+            this.parentFrame.showPanel(TCGUtils.COLLECTION);
+        });
 
         // Create "Home" button
         JButton homeButton = new JButton("Home");
         homeButton.setPreferredSize(new Dimension(100, 50));
         homeButton.setFocusPainted(false);
         // Switch to Home panel
-        homeButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.HOME)); 
+        homeButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.HOME));
 
         // Create "Trade" button
         JButton tradeButton = new JButton("Trade");
         tradeButton.setPreferredSize(new Dimension(100, 50));
         tradeButton.setFocusPainted(false);
-        tradeButton.addActionListener(e -> {
-            // TODO: Change to Trading panel when implemented
-        });
+        tradeButton.addActionListener(e -> this.parentFrame.showPanel(TCGUtils.TRADE));
 
         // Add all buttons to the panel
         add(collectionButton);
