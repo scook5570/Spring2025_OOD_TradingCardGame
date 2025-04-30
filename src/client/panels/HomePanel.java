@@ -55,11 +55,13 @@ public class HomePanel extends TCGPanel {
 
         carouselPanel = new JPanel();
         carouselPanel.setLayout(new BoxLayout(carouselPanel, BoxLayout.X_AXIS));
-        carouselPanel.setBackground(new Color(217, 217, 217));
+        //carouselPanel.setBackground(new Color(217, 217, 217));
+        carouselPanel.setOpaque(false);
         renderCarousel();
 
         JPanel centerWrapper = new JPanel(new GridBagLayout());
-        centerWrapper.setBackground(new Color(217, 217, 217));
+        //centerWrapper.setBackground(new Color(217, 217, 217));
+        centerWrapper.setOpaque(false);
         centerWrapper.add(carouselPanel);
 
         Font largeFont = new Font("Arial", Font.BOLD, 50);
@@ -83,7 +85,8 @@ public class HomePanel extends TCGPanel {
 
         // Create a wrapper panel that holds left button, carousel, and right button
         JPanel fullWrapper = new JPanel(new BorderLayout());
-        fullWrapper.setBackground(new Color(217, 217, 217));
+        //fullWrapper.setBackground(new Color(217, 217, 217));
+        fullWrapper.setOpaque(false);
         fullWrapper.add(leftButton, BorderLayout.WEST);
         fullWrapper.add(centerWrapper, BorderLayout.CENTER);
         fullWrapper.add(rightButton, BorderLayout.EAST);
@@ -151,6 +154,8 @@ public class HomePanel extends TCGPanel {
     private JPanel getSizedPack(int index, Dimension size) {
         JPanel packPanel = packPanels[index];
         packPanel.setPreferredSize(size);
+        packPanel.setFocusable(true);
+
         // Each packPanel basically works as a button for the user to press
         packPanel.addMouseListener(new MouseAdapter() {
             @Override
@@ -161,6 +166,16 @@ public class HomePanel extends TCGPanel {
                 if (response == JOptionPane.YES_OPTION) {
                     openPack(index);
                 }
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                packPanel.setBorder(null);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                packPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
             }
         });
         return packPanel;

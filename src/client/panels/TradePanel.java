@@ -31,19 +31,23 @@ public class TradePanel extends TCGPanel {
         JPanel tradeArea = createTradeArea();
         tradeArea.setPreferredSize(new Dimension(500, 0));
         tradeArea.setMinimumSize(new Dimension(500, 0));
-        JPanel requestPanel = createSidePanel("Trade Requests", new Dimension(300, 0), Color.LIGHT_GRAY);
+
+        // Integrate the trade request panel
+        JPanel requestPanel = createRequestPanel();
 
         // Combine the side panels and trade area into a container
         JPanel container = new JPanel(new BorderLayout(5, 5));
         container.add(chatPanel, BorderLayout.WEST);
         container.add(tradeArea, BorderLayout.CENTER);
         container.add(requestPanel, BorderLayout.EAST);
+        container.setOpaque(false);
 
         // Add Trade button at the bottom to initiate a trade
         JPanel tradeButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton tradeButton = new JButton("Initiate Trade");
         tradeButton.addActionListener(e -> initiateTrade());
         tradeButtonPanel.add(tradeButton);
+        tradeButtonPanel.setOpaque(false);
         container.add(tradeButtonPanel, BorderLayout.SOUTH);
 
         // Add the entire container as the main component
@@ -140,21 +144,48 @@ public class TradePanel extends TCGPanel {
         }
     }
 
-    /**
-     * Placeholder for obtaining the selected card from the CollectionPanel.
-     * In a real implementation, this should be replaced with logic to retrieve the actual selected card.
-     *
-     * @return The name of the selected card
-     */
-    private String getSelectedCardFromCollection() {
-        return "Fire Dragon"; // Placeholder for actual card selection logic
+    public void showTradeRequest(String username, Card proposedCard) {
+        // Create a new TradeRequestPanel to show the details
+        TradeRequestPanel tradeRequestPanel = new TradeRequestPanel(parentFrame, username, proposedCard);
+        parentFrame.setPanel(tradeRequestPanel);
     }
 
     /**
-     * Simulates waiting for the other user to confirm the trade.
-     * This method is a placeholder for future trade confirmation logic.
+     * Creates the panel that shows incoming trade requests. This method is used for displaying requests in the "Trade Requests" area.
      */
-    private void initiateTradeWaiting() {
-        JOptionPane.showMessageDialog(this, "Waiting for the other user to confirm the trade...");
+    private JPanel createRequestPanel() {
+        JPanel requestPanel = new JPanel();
+        requestPanel.setLayout(new BoxLayout(requestPanel, BoxLayout.Y_AXIS));
+        requestPanel.setBackground(Color.LIGHT_GRAY);
+
+        // Simulating a few requests
+        for (int i = 1; i <= 3; i++) {
+            String username = "User" + i;
+            Card proposedCard = new Card("card001" + i, "Fire Dragon", 3,"src/server/cardinfo/images/Fire Dragon.png" );
+
+            // Create a clickable panel for each trade request
+            JPanel requestItem = new JPanel();
+            requestItem.setLayout(new BoxLayout(requestItem, BoxLayout.Y_AXIS));
+            requestItem.setBackground(Color.GRAY);
+            requestItem.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            requestItem.setPreferredSize(new Dimension(300, 50));
+
+            JLabel requestLabel = new JLabel(username + " wants to trade " + proposedCard.getName());
+            requestItem.add(requestLabel);
+
+            // Center the request item
+            requestItem.setAlignmentX(Component.CENTER_ALIGNMENT);
+            requestItem.setMaximumSize(new Dimension(Integer.MAX_VALUE, requestItem.getPreferredSize().height));
+
+            // Add mouse listener to open the trade request details when clicked
+            requestItem.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                    showTradeRequest(username, proposedCard);
+                }
+            });
+
+            requestPanel.add(requestItem);
+        }
+        return requestPanel;
     }
 }

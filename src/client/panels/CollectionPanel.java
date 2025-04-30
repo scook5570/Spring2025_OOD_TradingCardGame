@@ -51,6 +51,7 @@ public class CollectionPanel extends TCGPanel {
         for (int i = 0; i < cardCount; i++) {
             String dummyName = "Card" + (i + 1);
             Card card = new Card("ID" + i, dummyName, (i % 5) + 1, dummyName);
+            card.setFocusable(true);
 
             if (isTradeMode) {
                 card.addMouseListener(new MouseAdapter() {
