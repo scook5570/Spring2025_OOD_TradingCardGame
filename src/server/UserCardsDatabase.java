@@ -7,9 +7,11 @@ import java.util.HashMap;
 import merrimackutil.json.JSONSerializable;
 import merrimackutil.json.JsonIO;
 import merrimackutil.json.types.JSONArray;
+import merrimackutil.json.types.JSONObject;
 import merrimackutil.json.types.JSONType;
+import shared.Card;
 
-public class UserCardsDatabase implements JSONSerializable{
+public class UserCardsDatabase implements JSONSerializable {
     private HashMap<String, JSONArray> cards; // username -> cardID
     private File file;
 
@@ -39,6 +41,7 @@ public class UserCardsDatabase implements JSONSerializable{
 
     /**
      * Add a user to the database with empty cards
+     * 
      * @param username
      * @throws InvalidObjectException
      */
@@ -55,6 +58,7 @@ public class UserCardsDatabase implements JSONSerializable{
 
     /**
      * Add cards to a user
+     * 
      * @param username
      * @throws InvalidObjectException
      */
@@ -71,6 +75,7 @@ public class UserCardsDatabase implements JSONSerializable{
 
     /**
      * Removes a user from the database
+     * 
      * @param username
      * @throws InvalidObjectException
      */
@@ -86,7 +91,49 @@ public class UserCardsDatabase implements JSONSerializable{
     }
 
     /**
+     * Removes a card from a user
+     */
+    public void removeCard(String username, String cardID) throws InvalidObjectException {
+        if (cards == null) {
+            return;
+        }
+        if (!cards.containsKey(username)) {
+            throw new InvalidObjectException("User does not exist in the database");
+        }
+        JSONArray userCards = cards.get(username);
+        System.out.println("User's current cards: " + userCards); // Debugging line
+        System.out.println("Card to remove: " + cardID); // Debugging line
+
+        boolean cardFound = false;
+
+        // Iterate backwards to avoid issues with modifying the list during iteration
+        for (int i = userCards.size() - 1; i >= 0; i--) {
+            Object card = userCards.get(i);
+            if (card instanceof JSONObject) {
+                JSONObject cardObject = (JSONObject) card;
+                if (cardObject.getString("cardID").equals(cardID)) {
+                    userCards.remove(i); // Remove the card
+                    cardFound = true;
+                    break;
+                }
+            } else if (card instanceof String && card.equals(cardID)) {
+                userCards.remove(i); // Remove the card
+                cardFound = true;
+                break;
+            }
+        }
+
+        if (!cardFound) {
+            System.out.println("Card " + cardID + " does not exist for user " + username); // Debugging line
+            throw new InvalidObjectException("Card does not exist for user");
+        }
+
+        save(); // Save the credentials to the file
+    }
+
+    /**
      * Get the cards of a user
+     * 
      * @param username
      * @return JSONArray of cardIDs
      * @throws InvalidObjectException
@@ -138,5 +185,40 @@ public class UserCardsDatabase implements JSONSerializable{
         } catch (Exception e) {
             System.err.println("Error writing users file: " + e.getMessage());
         }
+    }
+
+    public void addCard(String requesterID, String responseCardID, String name, int rarity, String imageLink) throws InvalidObjectException {
+        if (cards == null) {
+            cards = new HashMap<>();
+        }
+
+        // Check if the user exists, if not, create an empty list of cards for them
+        if (!cards.containsKey(requesterID)) {
+            cards.put(requesterID, new JSONArray());
+        }
+
+        JSONArray userCards = cards.get(requesterID);
+
+        // Create a new card JSONObject with the appropriate fields
+        JSONObject cardObject = new JSONObject();
+        cardObject.put("cardID", responseCardID);
+        cardObject.put("name", name);
+        cardObject.put("rarity", rarity);
+        cardObject.put("imageLink", imageLink); // Assuming no image link for now, can be updated later
+
+        // Add the card to the user's list
+        userCards.add(cardObject);
+        save(); // Save the credentials to the file
+    }
+
+    public JSONArray getAllUsers() {
+        JSONArray users = new JSONArray();
+        if (cards == null) {
+            return users;
+        }
+        for (String username : cards.keySet()) {
+            users.add(username);
+        }
+        return users;
     }
 }
