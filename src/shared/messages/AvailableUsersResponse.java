@@ -10,7 +10,7 @@ public class AvailableUsersResponse extends Message {
     private JSONArray users;
 
     public AvailableUsersResponse(JSONArray users) {
-        super("AvailableUsersRepsonse");
+        super("AvailableUsersResponse");
         this.users = users;
     }
 

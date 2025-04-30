@@ -45,8 +45,16 @@ public class ClientHandler implements Runnable {
             while (!socket.isClosed()) {
 
                 Message recvMsg = msgSocket.getMessage();
-    
-                if (recvMsg instanceof TradeInitiateRequest) {
+                if (recvMsg instanceof AvailableUsersRequest) {
+                    try {
+                        AvailableUsersRequest request = (AvailableUsersRequest) recvMsg;
+                        JSONArray availableUsers = server.handleAvailableUsersRequest(request);
+                        AvailableUsersResponse response = new AvailableUsersResponse(availableUsers);
+                        sendMessage(response);
+                    } catch (Exception e) {
+                        System.err.println("Error handling available users request: " + e.getMessage());
+                    }
+                } else if (recvMsg instanceof TradeInitiateRequest) {
                     try {
                         TradeInitiateRequest tradeRequest = (TradeInitiateRequest) recvMsg;
                         String tradeId = server.handleTradeInitiation(tradeRequest);

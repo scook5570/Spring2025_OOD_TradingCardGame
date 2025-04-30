@@ -388,6 +388,32 @@ public class ServerConnectionHandler {
         return true; 
     }
 
+    public JSONArray handleAvailableUsersRequest(AvailableUsersRequest request) {
+        String requestingUser = request.getRequestingUser();
+        JSONArray availableUsers = new JSONArray();
+
+        try {
+            // get all usernames
+            Set<String> allUsernames = userCardsDatabase.getAllUsernames();
+
+            // filter out the requesting user
+            for (String username : allUsernames) {
+                if (!username.equals(requestingUser)) {
+                    JSONObject userObj = new JSONObject();
+                    userObj.put("username", username);
+                    availableUsers.add(userObj);
+                }
+            }
+
+            System.out.println("Returning "+  availableUsers.size() + " available users for " + requestingUser);
+            return availableUsers;
+        } catch (Exception e) {
+            System.err.println("Error gettting available users: " + e.getMessage());
+            e.printStackTrace();
+            return new JSONArray();
+        }
+    }
+
     /**
      * 
      * @param packRequest

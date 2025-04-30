@@ -1,6 +1,5 @@
 package client;
 
-import java.time.zone.ZoneOffsetTransitionRule.TimeDefinition;
 //import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
@@ -21,6 +20,7 @@ public class Client {
         try (Scanner scanner = new Scanner(System.in)) {
 
             ClientConnectionHandler connectionHandler = ClientConnectionHandler.getInstance();
+            connectionHandler.startConnectionMnitor(); // start connection monitor
             BooleanWrapper loggedIn = new BooleanWrapper(); //for use in the lamba expression
             loggedIn.value = false;
 
@@ -168,20 +168,22 @@ public class Client {
             // step 2 : display availabe users
             System.out.println("Available users to trade with:");
             for (int i = 0; i < availableUsers.size(); i++) {
-                System.out.println((i+1) + "." + availableUsers.getString(i));
+                JSONObject user = (JSONObject) availableUsers.get(i);
+                System.out.println((i+1) + "." + user.getString("username"));
             }
 
             // step 3 : select recipient 
             System.out.println("Enter the number of the user you want to trade with (or 0 to cancel): ");
             int userChoice = scanner.nextInt();
-            scanner.nextLine();
+            scanner.nextLine(); // consume the newline
 
-            if (userChoice ==0 || userChoice > availableUsers.size()) {
+            if (userChoice <= 0 || userChoice > availableUsers.size()) {
                 System.out.println("Trade canceled.");
                 return;
             }
 
             String recipient = availableUsers.getString(userChoice - 1);
+            System.out.println("Selected user: " + recipient);
 
             // step 4 : get user's cards
             System.out.println("Fetching your card collection");
@@ -196,7 +198,7 @@ public class Client {
             System.out.println("Your cards:");
             for (int i = 0; i < userCards.size(); i++) {
                 JSONObject card = (JSONObject) userCards.get(i);
-                System.out.println((i + 1) + "." + card.getString("name") + " (Rarity " + card.getInt("rarity") + ")");
+                System.out.println((i + 1) + "." + card.getString("name") + " (Rarity " + card.getInt("rarity") + ", ID: " + card.getString("cardID") + ")");
             }
 
             // step 6 : select cards to offer
@@ -212,9 +214,13 @@ public class Client {
             JSONArray selectedCards = new JSONArray();
 
             for (String choice : choices) {
-                int cardIndex = Integer.parseInt(choice.trim()) - 1;
-                if (cardIndex >= 0 && cardIndex < userCards.size()) {
-                    selectedCards.add(userCards.get(cardIndex));
+                try {
+                    int cardIndex = Integer.parseInt(choice.trim()) - 1;
+                    if (cardIndex >= 0 && cardIndex < userCards.size()) {
+                        selectedCards.add(userCards.get(cardIndex));
+                    }
+                } catch (NumberFormatException e) {
+                    // skip invalid numbers
                 }
             }
 
@@ -223,14 +229,23 @@ public class Client {
                 return;
             }
 
+            System.out.println("You're offering " + selectedCards.size() + " cards to " + recipient + ". Confirm? (y/n)");
+            String confirm = scanner.nextLine();
+
+            if (!confirm.toLowerCase().startsWith("y")) {
+                System.out.println("Trade cancelled");
+                return;
+            }
+
             // step 7 : initiate the trade
-            System.out.println("Initiating trade with " + recipient + "...");
+            System.out.println("Initiating trade...");
             String result = connectionHandler.initiateTrade(recipient, selectedCards).get(10, TimeUnit.SECONDS);
 
-            System.out.println(result);
-            System.out.println("Trade initiated! Waiting for " + recipient + " to respond");
+            System.out.println("Trade initiated: " + result);
+            System.out.println("Waiting for " + recipient + " to respond");
         } catch (Exception e) {
             System.err.println("Error initiatin trade: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

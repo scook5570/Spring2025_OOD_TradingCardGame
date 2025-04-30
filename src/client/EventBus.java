@@ -17,7 +17,7 @@ public class EventBus {
         TRADE_RESPONSE,
         COUNTER_OFFER,
         COUNTER_OFFER_RESPONSE,
-        AVAILABLE_USER_RESPONSE
+        AVAILABLE_USERS_RESPONSE
     }
 
     // thread safe collections for listeners 

@@ -20,6 +20,10 @@ public class AvailableUsersRequest extends Message {
         }
     }
 
+    public String getRequestingUser() {
+        return this.username;
+    }
+
     @Override
     public void deserialize(JSONType jsonType) throws InvalidObjectException {
         super.deserialize(jsonType);

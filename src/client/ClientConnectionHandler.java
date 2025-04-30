@@ -23,9 +23,6 @@ import java.util.concurrent.TimeoutException;
 
 import java.util.regex.Pattern;
 
-import org.w3c.dom.css.Counter;
-import org.w3c.dom.events.Event;
-
 import java.util.function.Consumer; 
 
 import client.EventBus.EventType;
@@ -49,6 +46,7 @@ public class ClientConnectionHandler {
     private String username;
     private MessageSocket messageSocket; 
     private boolean connected = false; 
+    private long lastActivityTime;
 
     //Thread management 
     private Thread receiverThread;
@@ -64,6 +62,7 @@ public class ClientConnectionHandler {
         this.serverAddress = "localhost";
         this.serverPort = 5100; // CHANGE IF NEEDED, MY MAC's 5000 PORT IS OCCUPIED
         this.executorService = Executors.newScheduledThreadPool(1);
+        this.lastActivityTime = System.currentTimeMillis();
     }
 
     /**
@@ -125,18 +124,37 @@ public class ClientConnectionHandler {
         this.receiverThread = new Thread(() -> {
             try {
                 while (this.connected) {
-                    Message response = messageSocket.getMessage();
-                    handleResponse(response);
+                    try {
+                        Message response = messageSocket.getMessage();
+                        lastActivityTime = System.currentTimeMillis();
+                        handleResponse(response);
+                    } catch (Exception e) {
+                        if (this.connected && !reconnecting) {
+                            System.err.println("Error receiving message: " + e.getMessage());
+                            handleDisconnection("Error in reciever thread: " + e.getMessage());
+
+                            // wait a bit before trrying to process messages
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException i) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
+                        } else {
+                            break; // if we're alreaady disconnected or reconnecting, exit the loop
+                        }
+                    }
                 }
             } catch (Exception e) {
-                System.err.println("Connection to server lost: " + e.getMessage());
-                disconnect();
+                System.err.println("Fatal error in receiver thread: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                System.out.println("Receiver thread exiting");
             }
         });
         receiverThread.setDaemon(true);
         receiverThread.start();
         System.out.println("Thread started✅");
-
     }
 
     /**
@@ -164,6 +182,9 @@ public class ClientConnectionHandler {
                 break;
             case "CounterOfferResponse":
                 EventBus.getInstance().publish(EventType.COUNTER_OFFER, response);
+            case "AvailableUsersResponse":
+                EventBus.getInstance().publish(EventType.AVAILABLE_USERS_RESPONSE, response);
+                break;
             default:
             System.err.println("Unkown response type: " + response.getType());
         }
@@ -207,20 +228,28 @@ public class ClientConnectionHandler {
      * Send a message to the server
      * @param message
      */
-    public void sendMessage(Message message) {
+    public CompletableFuture<Void> sendMessage(Message message) {
+        
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        
         System.out.println("Checking connection...");
         if (!this.connected) {
             System.out.println("Not connected, trying to connect...");
             if (!connect()) {
-                return; 
+                return future; 
             }
         }
 
-        System.out.println("Sending message...");
-        this.executorService.submit(() -> {
+        try {
+            System.out.println("Sending message of type: " + message.getType());
             this.messageSocket.sendMessage(message);
-            System.out.println("Message sent✅");
-        });
+            future.complete(null);
+        } catch (Exception e) {
+            System.err.println("Error sending message: " + e.getMessage());
+            e.printStackTrace();
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     /**
@@ -237,12 +266,12 @@ public class ClientConnectionHandler {
             future.complete(users);
         };
 
-        EventBus.getInstance().subscribe(EventType.AVAILABLE_USER_RESPONSE, listener);
+        EventBus.getInstance().subscribe(EventType.AVAILABLE_USERS_RESPONSE, listener);
     
         AvailableUsersRequest request = new AvailableUsersRequest(this.username);
         sendMessage(request);
 
-        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.AVAILABLE_USER_RESPONSE, listener));
+        return future.whenComplete((result, ex) -> EventBus.getInstance().unsubscribe(EventType.AVAILABLE_USERS_RESPONSE, listener));
     }
 
     /**
@@ -372,18 +401,121 @@ public class ClientConnectionHandler {
      */
     public CompletableFuture<String> initiateTrade(String recipient, JSONArray offeredCards) {
         System.out.println("Initiating trade with " + recipient);
+        CompletableFuture<String> future = new CompletableFuture<>();
 
         if (this.username == null) {
-            CompletableFuture<String> failedFuture = new CompletableFuture<>();
-            failedFuture.completeExceptionally(new IllegalStateException("Not logged in"));
-            return failedFuture;
+            future.completeExceptionally(new IllegalStateException("Not logged in"));
+            return future;
+        }
+
+        if (offeredCards == null || offeredCards.size() == 0) {
+            future.completeExceptionally(new IllegalArgumentException("No cards selected for trade"));
+            return future;
         }
 
         TradeInitiateRequest request = new TradeInitiateRequest(this.username, recipient, offeredCards);
-        sendMessage(request);
+        
+        sendMessage(request).whenComplete((result, ex) -> {
+            if (ex != null) {
+                future.completeExceptionally(new Exception("Failed to send trade request: " + ex.getMessage(), ex));
+            } else {
+                // set a timeout to prevent waiting forever
+                executorService.schedule(() -> {
+                    if (!future.isDone()) {
+                        future.complete("Trade initiated (pending response)");
+                    }
+                }, 5, TimeUnit.SECONDS);
+            }
+        });
 
-        System.out.println("Trade request sent");
-        return CompletableFuture.completedFuture("Trade initiated");
+        // we'll consider the trrade initiate once the messge is sent, 
+        // the actual response will come through the event system
+        return future;
+    }
+
+    private boolean reconnecting = false; 
+    private static final int RECONNECT_DELAY_MS = 5000;
+
+    /**
+     * periodically checks connection
+     */
+    public void startConnectionMnitor() {   
+        executorService.scheduleAtFixedRate(() -> {
+            if (this.connected && !reconnecting) {
+                try {
+                    // send a simple ping if no activity for a while
+                    if (System.currentTimeMillis() - lastActivityTime > 30000) {
+                        sendPing();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error in connection monitor:  " + e.getMessage());
+                }
+            }
+        }, 30, 30, TimeUnit.SECONDS);
+    }
+
+    /**
+     * sends pings periodically if on activity is detected 
+     */
+    private void sendPing() {
+        try {
+            if (messageSocket != null && messageSocket.isConnected()) {
+                // connection seems good
+                lastActivityTime = System.currentTimeMillis();
+            } else {
+                handleDisconnection("Connection test failed");
+            }
+        } catch (Exception e) {
+            handleDisconnection("Erroor testing connection: " + e.getMessage());
+        }
+    }
+
+    /**
+     * gracesfully handles disconnection and tries to reconnect
+     * @param reason
+     */
+    private void handleDisconnection(String reason) {
+        System.err.println("Connection issue detected: " + reason);
+        if (reconnecting) {
+            return;
+        }
+        reconnecting = true;
+
+        // close existing socket
+        try {
+            if (messageSocket != null) {
+                messageSocket.close();
+            } 
+        } catch (Exception e) {
+            // ignore
+        }
+
+        this.connected = false; 
+
+        // attempt to reconnect
+        executorService.schedule(() -> {
+            System.out.println("Attempting to reconnect...");
+            try {
+                if (connect()) {
+                    System.out.println("Reconnection successful");
+
+                    // reauthenticate if needed
+                    if (username != null) {
+                        login(username, "RECONNECT_TOKEN").whenComplete((success, ex) -> {
+                            reconnecting = false;
+                        });
+                    } else {
+                        reconnecting = false;
+                    }
+                } else {
+                    System.err.println("Reconnection failed");
+                    reconnecting = false;
+                }
+            } catch (Exception e) {
+                System.err.println("Error during reconnection: " + e.getMessage());
+                reconnecting = false; 
+            }
+        }, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
     }
 
     /**
