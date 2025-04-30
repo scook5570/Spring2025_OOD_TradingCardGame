@@ -189,8 +189,8 @@ public class LoginDialog extends JDialog {
 
                 if (userCredResponse.isSuccess() && requestType.equals("Login")) {
                     // Successful login: open main application window
-                    new MainFrame(username);
                     dispose(); // Close login dialog
+                    new MainFrame(username);
                 } else if (userCredResponse.isSuccess()) {
                     // Successful registration
                     messageLabel.setText("Successfully Registered");

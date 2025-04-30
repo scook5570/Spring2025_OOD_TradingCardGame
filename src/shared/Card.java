@@ -35,7 +35,7 @@ public class Card extends JPanel {
     }
 
     public Card(String cardID, String name, int rarity, String image, String pack) {
-        this(cardID, name, rarity, null);
+        this(cardID, name, rarity, image);
         this.pack = pack;
     }
 
@@ -44,7 +44,8 @@ public class Card extends JPanel {
         super.paintComponent(g);
         try {
             // get image
-            File imageFile = Paths.get(System.getProperty("user.dir"), "src/server/cardinfo/images/", this.name + ".png").toFile();
+            File imageFile = Paths.get(image).toFile();
+            System.out.println(Paths.get(image));
             Image img = ImageIO.read(imageFile);
             if (img == null) {
                 throw new IOException("ImageIO.read returned null for file: " + imageFile);

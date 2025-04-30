@@ -187,7 +187,7 @@ public class HomePanel extends TCGPanel {
         System.out.println("openPack called with pack index: " + packIndex);
         try (MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT))) {
             System.out.println("Opening a pack...");
-            PackRequest packRequest = new PackRequest(username, "Worlds Collide", 5);
+            PackRequest packRequest = new PackRequest(username, getPackName(packIndex), 5);
             messageSocket.sendMessage(packRequest);
             Message response = messageSocket.getMessage();
             if (response instanceof PackResponse packResponse) {
@@ -201,6 +201,7 @@ public class HomePanel extends TCGPanel {
                     String name = card.getString("name");
                     int rarity = card.getInt("rarity");
                     String image = card.getString("imageLink");
+                    System.out.println("LINK: " + image);
                     openedCards[i] = new Card(cardID, name, rarity, image);
                 }
                 new PackOpeningWindow(openedCards);
@@ -210,6 +211,20 @@ public class HomePanel extends TCGPanel {
         } catch (Exception ex) {
             ex.printStackTrace();
             System.out.println("Error while opening pack: " + ex.getMessage());
+        }
+    }
+
+
+    public String getPackName(int index){
+        switch (index) {
+            case 0:
+                return "Worlds Collide";
+            case 1:
+                return "Strong";
+            case 2:
+                return "Jelly";
+            default:
+                return "Worlds Collide";
         }
     }
 
