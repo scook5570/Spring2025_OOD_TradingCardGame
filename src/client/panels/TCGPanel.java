@@ -82,6 +82,31 @@ public class TCGPanel extends JPanel {
     }
 
     /**
+     * Adds a main component (e.g., collection, carousel) to the panel.
+     * The component is centered and sized relative to the screen size.
+     * 
+     * @param component The component to be added (JComponent)
+     * @param fill wheather it should fill horizonatally
+     */
+    public void addMainComponent(JComponent component, boolean fill) {
+        // Set the component's preferred size to a percentage of the screen size
+        component.setPreferredSize(new Dimension((int) (this.rect.width * 0.7), (int) (this.rect.height * 0.7)));
+
+        if (fill){
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+        }
+
+        // Position the component in the layout, centered
+        gbc.gridy = 1; 
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.weighty = 1; // Let it take up vertical space for centering
+        gbc.anchor = GridBagConstraints.CENTER;
+        add(component, gbc);
+
+        resetGBC();
+    }
+
+    /**
      * Getter method for the username
      * 
      * @return The username of the player

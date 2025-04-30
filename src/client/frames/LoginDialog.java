@@ -7,6 +7,7 @@ import java.net.Socket;
 
 import javax.swing.*;
 
+import client.utils.TCGUtils;
 import shared.MessageSocket;
 import shared.messages.*;
 
@@ -14,10 +15,6 @@ import shared.messages.*;
  * A dialog window for user authentication (Login/Register).
  */
 public class LoginDialog extends JDialog {
-    // Server connection details
-    private final String SERVERADDRESS = "localhost";
-    private final int PORT = 5000;
-
     // Regex pattern: Alphanumeric username, 5-12 characters
     private final String USERREGEX = "[A-Z,a-z,0-9]{5,12}";
 
@@ -176,7 +173,7 @@ public class LoginDialog extends JDialog {
 
         try {
             // Create a connection to the server
-            MessageSocket messageSocket = new MessageSocket(new Socket(SERVERADDRESS, PORT));
+            MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT));
             UserCredRequest userCredRequest = new UserCredRequest(requestType, username, password);
 
             // Update UI message

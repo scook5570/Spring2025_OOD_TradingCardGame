@@ -3,6 +3,7 @@ package client;
 import java.net.Socket;
 import java.util.Scanner;
 
+import client.frames.LoginDialog;
 import merrimackutil.json.types.JSONArray;
 import merrimackutil.json.types.JSONObject;
 import shared.MessageSocket;
@@ -22,6 +23,8 @@ public class Client {
                 // Connect to the server
                 MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
                 System.out.println("Connected to server at " + serverAddress + ":" + port);
+
+                new LoginDialog();
 
                 // CLI for user input
                 System.out.println("Choose an option:");
