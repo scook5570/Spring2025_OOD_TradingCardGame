@@ -31,7 +31,7 @@ public class TradeOfferNotification extends Message {
         return this.tradeId;
     }
 
-    public String getSenderUsername() {
+    public String getUsername() {
         return this.senderUsername;
     }
 

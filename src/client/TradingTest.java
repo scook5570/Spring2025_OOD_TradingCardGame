@@ -116,7 +116,7 @@ public class TradingTest {
             // wait for a trade offer with timeout
             TradeOfferNotification offer = connectionHandler.waitForTradeOffer(30).get(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
 
-            System.out.println("Trade offer received from: " + offer.getSenderUsername());
+            System.out.println("Trade offer received from: " + offer.getUsername());
             System.out.println("Cards offered:");
             displayCards(offer.getOfferedCards());
 

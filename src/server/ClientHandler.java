@@ -55,7 +55,7 @@ public class ClientHandler implements Runnable {
                             pendingTradeResponses.put(tradeId, System.currentTimeMillis());
                             System.out.println("Trade initiated successfully, waiting for response...");
                         } else {
-                            TradeResponse errorResponse = new TradeResponse("error", false, tradeRequest.getSenderUsername());
+                            TradeResponse errorResponse = new TradeResponse("error", false, tradeRequest.getUsername());
                             sendMessage(errorResponse);
                         }
                     } catch (Exception e) {

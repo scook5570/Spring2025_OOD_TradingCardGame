@@ -87,7 +87,7 @@ public class TradeLogger {
      */
     public void logTradeCounterOffer(String tradeId, String initiator, String recipient, JSONArray cards) {
         String cardCount = cards != null ? String.valueOf(cards.size()) : "0";
-        log("COUNTER_OGGER", tradeId, recipient, initiator, "counterOffered", "Recipient " + recipient + " offered " + cardCount + " cards in return");
+        log("COUNTER_OFFER", tradeId, recipient, initiator, "counterOffered", "Recipient " + recipient + " offered " + cardCount + " cards in return");
 
         if (verboseLogging && cards != null) {
             StringBuilder cardDetails = new StringBuilder("Counter-offered cards: ");

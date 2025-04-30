@@ -223,14 +223,26 @@ public class TradeDatabase implements JSONSerializable {
         rwLock.writeLock().lock();
         try {
             JSONObject trade = pendingTrades.get(tradeId);
-            if (trade == null || !"pending".equals(trade.getString("status"))) {
+            if (trade == null) { 
+                System.out.println("Trade not found: " + tradeId);
                 return false; 
             }
 
+            if (!"pending".equals(trade.getString("status"))) {
+                System.out.println("Trade not in pending status: " + trade.getString("status"));
+                return false;
+            }
+
+            // update trae with recipient's offered cards
             trade.put("recipientOfferedCards", recipientCards);
             trade.put("status", "counterOffered");
+            
             save();
+            System.out.println("Counteroffer added to trdae " + tradeId);
             return true; 
+        } catch (Exception e) {
+            System.err.println("Error adding counteroffer: " + e.getMessage());
+            return false;
         } finally {
             rwLock.writeLock().unlock();
         }

@@ -103,9 +103,9 @@ public class ServerConnectionHandler {
      */
     public String handleTradeInitiation(TradeInitiateRequest request) {
 
-        System.out.println("DEBUG: Trade initiation from " + request.getSenderUsername() + " to " + request.getRecipientUsername());
+        System.out.println("DEBUG: Trade initiation from " + request.getUsername() + " to " + request.getRecipientUsername());
 
-        String sender = request.getSenderUsername();
+        String sender = request.getUsername();
         String recipient = request.getRecipientUsername();
         JSONArray offeredCards = request.getOfferedCards();
 
@@ -177,6 +177,9 @@ public class ServerConnectionHandler {
         String username = request.getUsername();
         JSONArray offeredCards = request.getOfferedCards();
 
+        System.out.println("Processing counteroffer from " + username + " for trade "+ tradeId);
+
+        // get trade details
         JSONObject trade = tradeDatabase.getTrade(tradeId);
         if (trade == null || !"pending".equals(trade.getString("status"))) {
             System.out.println("Counter offer failed: Trade not foundor not pending");
@@ -208,16 +211,22 @@ public class ServerConnectionHandler {
                     System.out.println("Counter offer failed: Card not owned by user");
                     return false; 
                 }
-
             }
-         
         } catch (InvalidObjectException e) {
             System.err.println("Error verifying card ownership: " + e.getMessage());
             return false; 
         }
 
+        // try to lock the offered cards to precvent them from being included in other trades
+        if (!tradeDatabase.lockCardsForTrade(offeredCards, tradeId)) {
+            System.out.println("Counter offer failed, couldn't lock cards");
+            return false;
+        }
+
         // update trade with counter offer
         if (!tradeDatabase.addCounterOffer(tradeId, offeredCards)) {
+            System.out.println("Counter offer failed: couldn't lock cards");
+            tradeDatabase.unlockCardsForTrade(tradeId); // release locks ifthe trade fails 
             return false; 
         }
 
@@ -227,6 +236,9 @@ public class ServerConnectionHandler {
         if (initiatorHandler != null) {
             TradeOfferNotification notification = new TradeOfferNotification(tradeId, username, offeredCards, "counterOffer");
             initiatorHandler.sendMessage(notification);
+            System.out.println("Counteroffer notification sent to " + initiator);
+        } else {
+            System.out.println("Initiator " + initiator + " is offline, couldn't notify");
         }
 
         TradeLogger.getInstance().logTradeCounterOffer(tradeId, initiator, recipient, offeredCards);

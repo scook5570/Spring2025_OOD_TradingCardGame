@@ -26,7 +26,7 @@ public class TradeInitiateRequest extends Message {
     }
 
     // Getters 
-    public String getSenderUsername() {
+    public String getUsername() {
         return this.senderUsername; 
     }
 

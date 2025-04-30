@@ -61,7 +61,18 @@ public class Client {
                     System.out.println("Sending login request...");
                     connectionHandler.connect();
                     
-                    connectionHandler.login(username, password);
+                    //connectionHandler.login(username, password);
+                    try {
+                        boolean success = connectionHandler.login(username, password).get(10, TimeUnit.SECONDS);
+                        if (success) {
+                            loggedIn.value = true;
+                            System.out.println("Login Successful - proceeding to home page");
+                        } else {
+                            System.out.println("Login failed, Please try again");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error during login: " + e.getMessage());
+                    }
 
                 } else {
                     System.out.println("Invalid choice. Exiting...");
@@ -101,7 +112,13 @@ public class Client {
                     }
                 } else if (homeChoice == 2) {
                     System.out.println("Retrieving collection...");
-                    connectionHandler.getCollection(username);      
+                    connectionHandler.getCollection(username).thenAccept(cards -> {
+                        System.out.println("\nYour collection contains the following cards:");
+                        displayCards(cards);
+                    }).exceptionally(ex -> {
+                        System.err.println("Error retrieving collection: " + ex.getMessage());
+                        return null;
+                    });      
                     
                     try {
                         Thread.sleep(1000);
@@ -238,7 +255,7 @@ public class Client {
                 return;
             }
 
-            System.out.println("Trade offer received from: " + offer.getSenderUsername());
+            System.out.println("Trade offer received from: " + offer.getUsername());
             System.out.println("Cards offered:");
             displayCards(offer.getOfferedCards());
 
@@ -246,7 +263,7 @@ public class Client {
 
             if (tradeStage.equals("initial")) {
                 // initial offer - recipient needs to counter-offer
-                System.out.println("do you want to repsonse to this trade? (y/n): ");
+                System.out.println("do you want to respond to this trade? (y/n): ");
                 String response = scanner.nextLine();
 
                 if (!response.equalsIgnoreCase("y")) {
