@@ -88,7 +88,7 @@ public class Client {
                 if (homeChoice == 1) {
                     System.out.println("Opening a pack...");
                     MessageSocket messageSocket = new MessageSocket(new Socket(serverAddress, port));
-                    PackRequest packRequest = new PackRequest(username, "CoolPack", 5);
+                    PackRequest packRequest = new PackRequest(username, "Worlds Collide", 5);
                     messageSocket.sendMessage(packRequest);
 
                     Message response = messageSocket.getMessage();

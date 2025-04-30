@@ -1,72 +1,72 @@
 [
     {
         "cardID": "card001",
-        "name": "Fire Dragon",
+        "name": "Batman",
         "rarity": 5,
-        "imageLink": "src/server/cardinfo/images/fire_dragon.png",
-        "pack": "CoolPack"
+        "imageLink": "src/server/cardinfo/images/batman.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card002",
-        "name": "Water Sprite",
+        "name": "Jayce",
         "rarity": 3,
-        "imageLink": "src/server/cardinfo/images/water_sprite.png",
-        "pack": "NotCoolPack"
+        "imageLink": "src/server/cardinfo/images/jayce.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card003",
-        "name": "Earth Golem",
+        "name": "Walter White",
         "rarity": 4,
-        "imageLink": "src/server/cardinfo/images/earth_golem.png",
-        "pack": "CoolPack"
+        "imageLink": "src/server/cardinfo/images/walter.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card004",
-        "name": "Wind Elemental",
+        "name": "Ultron",
         "rarity": 2,
-        "imageLink": "src/server/cardinfo/images/wind_elemental.png",
-        "pack": "NotCoolPack"
+        "imageLink": "src/server/cardinfo/images/ultron.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card005",
-        "name": "Lightning Phoenix",
+        "name": "Shockwave",
         "rarity": 5,
-        "imageLink": "src/server/cardinfo/images/lightning_phoenix.png",
-        "pack": "CoolPack"
+        "imageLink": "src/server/cardinfo/images/shockwave.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card006",
-        "name": "Shadow Assassin",
+        "name": "Brainstorm",
         "rarity": 4,
-        "imageLink": "src/server/cardinfo/images/shadow_assassin.png",
-        "pack": "CoolPack"
+        "imageLink": "src/server/cardinfo/images/brainstorm.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card007",
-        "name": "Frost Giant",
+        "name": "Mr. Fantastic",
         "rarity": 3,
-        "imageLink": "src/server/cardinfo/images/frost_giant.png",
-        "pack": "NotCoolPack"
+        "imageLink": "src/server/cardinfo/images/fantastic.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card008",
-        "name": "Solar Angel",
+        "name": "Master Chief",
         "rarity": 5,
-        "imageLink": "src/server/cardinfo/images/solar_angel.png",
-        "pack": "CoolPack"
+        "imageLink": "src/server/cardinfo/images/master.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card009",
-        "name": "Venomous Hydra",
+        "name": "Ghost Rider",
         "rarity": 4,
-        "imageLink": "src/server/cardinfo/images/venomous_hydra.png",
-        "pack": "CoolPack"
+        "imageLink": "src/server/cardinfo/images/ghost.png",
+        "pack": "Worlds Collide"
     },
     {
         "cardID": "card010",
-        "name": "Mystic Elf",
+        "name": "Dr. Doom",
         "rarity": 2,
-        "imageLink": "src/server/cardinfo/images/mystic_elf.png",
-        "pack": "NotCoolPack"
+        "imageLink": "src/server/cardinfo/images/doom.png",
+        "pack": "Worlds Collide"
     }
 ]
