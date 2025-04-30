@@ -444,7 +444,7 @@ public class ClientConnectionHandler {
             if (this.connected && !reconnecting) {
                 try {
                     // send a simple ping if no activity for a while
-                    if (System.currentTimeMillis() - lastActivityTime > 30000) {
+                    if (System.currentTimeMillis() - lastActivityTime > 60000) {
                         sendPing();
                     }
                 } catch (Exception e) {
@@ -492,30 +492,49 @@ public class ClientConnectionHandler {
 
         this.connected = false; 
 
-        // attempt to reconnect
-        executorService.schedule(() -> {
-            System.out.println("Attempting to reconnect...");
-            try {
-                if (connect()) {
-                    System.out.println("Reconnection successful");
+        // attempt to reconnect with exponential backoff
+        final int[] retryDelays = {1000, 2000, 4000, 8000}; 
+        final int maxRetries = retryDelays.length;
 
-                    // reauthenticate if needed
-                    if (username != null) {
-                        login(username, "RECONNECT_TOKEN").whenComplete((success, ex) -> {
+        for (int retryCount = 0; retryCount < maxRetries; retryCount++) {
+            // attempt to reconnect
+            executorService.schedule(() -> {
+                System.out.println("Attempting to reconnect...");
+                try {
+                    if (connect()) {
+                        System.out.println("Reconnection successful");
+
+                        // reauthenticate if needed
+                        if (username != null) {
+                            login(username, "RECONNECT_TOKEN").whenComplete((success, ex) -> {
+                                reconnecting = false;
+                            });
+                        } else {
                             reconnecting = false;
-                        });
+                        }
                     } else {
+                        System.err.println("Reconnection failed");
                         reconnecting = false;
                     }
-                } else {
-                    System.err.println("Reconnection failed");
-                    reconnecting = false;
+                } catch (Exception e) {
+                    System.err.println("Error during reconnection: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                System.err.println("Error during reconnection: " + e.getMessage());
-                reconnecting = false; 
+            }, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+
+            // see if a reconnection attempt succeedded befoe trying again
+            try {
+                Thread.sleep(retryDelays[retryCount] + 500);
+                if (connected) {
+                    reconnecting = false;
+                    return;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-        }, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+        }
+        // notify user when retries have been exhausted
+        System.out.println("Failed to reconnect after multiple attempts");
+        reconnecting = false;
     }
 
     /**
@@ -606,7 +625,7 @@ public class ClientConnectionHandler {
                 future.complete(false);
                 EventBus.getInstance().unsubscribe(EventType.TRADE_RESPONSE, (Consumer<?>)listener);
             }
-        }, 30, TimeUnit.SECONDS);
+        }, 60, TimeUnit.SECONDS);
         return future;
     }
 

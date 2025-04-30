@@ -182,7 +182,8 @@ public class Client {
                 return;
             }
 
-            String recipient = availableUsers.getString(userChoice - 1);
+            JSONObject userObj = (JSONObject) availableUsers.get(userChoice - 1);
+            String recipient = userObj.getString("username");
             System.out.println("Selected user: " + recipient);
 
             // step 4 : get user's cards

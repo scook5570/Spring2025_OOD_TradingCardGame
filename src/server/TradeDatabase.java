@@ -1,6 +1,7 @@
 package server;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InvalidObjectException;
 
 import java.util.HashMap;
@@ -46,16 +47,26 @@ public class TradeDatabase implements JSONSerializable {
      */
     public TradeDatabase(File file) {
         this.file = file;
-        // makes th file if it does't already exist 
-        if (!this.file.exists() || this.file.length() == 0) {
+        // Create directories if they don't exist
+        File databaseDir = file.getParentFile();
+        if (!databaseDir.exists()) {
+            boolean dirCreated = databaseDir.mkdirs();
+            if (!dirCreated) {
+                System.err.println("Failed to create database directory: " + databaseDir.getAbsolutePath());
+            }
+        }
+        
+        // Create file if it doesn't exist
+        if (!this.file.exists()) {
             try {
-                this.file.getParentFile().mkdir();
-                if (!this.file.createNewFile()) {
-                    System.err.println("TARRIF ERROR : Could not create trades.json file");
-                    throw new RuntimeException();
+                boolean fileCreated = this.file.createNewFile();
+                if (!fileCreated) {
+                    System.err.println("Failed to create trades.json file");
+                    // Continue with empty pendingTrades rather than throwing exception
                 }
-            } catch (Exception e) {
-                System.err.println("TARRIF ERROR : Error creating trades file: " + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("Error creating trades file: " + e.getMessage());
+                e.printStackTrace();
             }
             pendingTrades = new HashMap<>();
             return;
@@ -372,6 +383,9 @@ public class TradeDatabase implements JSONSerializable {
                 if (now - timestamp > maxAgeMillis) {
                     trade.put("status", "expired");
                     save();
+
+                    // release card locks for the trade
+                    unlockCardsForTrade(tradeId);
 
                     String initiator = trade.getString("initiator");
                     String recipient = trade.getString("recipient");

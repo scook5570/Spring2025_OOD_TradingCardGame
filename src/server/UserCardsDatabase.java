@@ -316,9 +316,13 @@ public class UserCardsDatabase implements JSONSerializable {
             
             // Step 1: Build a map of all card IDs to their owners
             Map<String, List<String>> cardOwnerMap = new HashMap<>();
+            int totalCards = 0;
             
             for (String username : cards.keySet()) {
                 JSONArray userCards = cards.get(username);
+
+                totalCards += userCards.size();
+
                 for (int i = 0; i < userCards.size(); i++) {
                     JSONObject card = (JSONObject) userCards.get(i);
                     String cardId = card.getString("cardID");
@@ -332,6 +336,7 @@ public class UserCardsDatabase implements JSONSerializable {
             
             // Step 2: Check for and fix duplicated cards
             boolean repairsNeeded = false;
+
             for (String cardId : cardOwnerMap.keySet()) {
                 List<String> owners = cardOwnerMap.get(cardId);
                 if (owners.size() > 1) {
@@ -356,6 +361,14 @@ public class UserCardsDatabase implements JSONSerializable {
             } else {
                 System.out.println("No integrity issues found");
             }
+
+            // double check the repair
+            int newTotalCards = 0;
+            for (String username : cards.keySet()) {
+                newTotalCards += cards.get(username).size();
+            }
+
+
         } finally {
             rwLock.writeLock().unlock();
         }

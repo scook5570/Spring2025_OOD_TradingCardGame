@@ -181,9 +181,15 @@ public class ServerConnectionHandler {
 
         // get trade details
         JSONObject trade = tradeDatabase.getTrade(tradeId);
-        if (trade == null || !"pending".equals(trade.getString("status"))) {
+        if (trade == null) {
             System.out.println("Counter offer failed: Trade not foundor not pending");
             return false; 
+        }
+
+        // check if the trade is still vlaid for conter-offering 
+        String status = trade.getString("status");
+        if (!"pending".equals(status)) {
+            System.out.println("Counter offer failed: Trade is not pending (status: " + status + ")");
         }
 
         // verify recipient 
@@ -192,6 +198,9 @@ public class ServerConnectionHandler {
             System.out.println("Counter offer failed: user is not recipient");
             return false; 
         }
+
+        // unlock existing locks for the trade before attempting ti lock new cards
+        tradeDatabase.unlockCardsForTrade(tradeId); 
 
         // verufy card ownsership
         try {
@@ -229,6 +238,9 @@ public class ServerConnectionHandler {
             tradeDatabase.unlockCardsForTrade(tradeId); // release locks ifthe trade fails 
             return false; 
         }
+
+        trade.put("timestamo", System.currentTimeMillis());
+        tradeDatabase.save();
 
         // notify initiator of counter offer
         String initiator = trade.getString("initiator");

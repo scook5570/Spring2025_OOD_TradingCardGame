@@ -62,6 +62,12 @@ public class CardLockManager {
                 lockedCards.remove(cardId);
                 System.out.println("Lock released for card " + cardId + " by trade " + transactionId);
             }
+
+            // log the number of cards released for debugging
+            if (!cardsToRelease.isEmpty()) {
+                System.out.println("Released " + cardsToRelease.size() + " card locks for trade " + transactionId);
+            }
+
         } finally {
             managerLock.writeLock().unlock();
         }
