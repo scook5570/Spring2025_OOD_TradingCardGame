@@ -14,6 +14,7 @@ public class Card extends JPanel {
     private int rarity; // Rarity of the card (1-5)
     private String cardID;
     private String image;
+    private String pack; // Pack the card belongs to
 
     /**
      * Trading Card Constructor
@@ -31,6 +32,11 @@ public class Card extends JPanel {
         setPreferredSize(dimension);
         setVisible(true);
         // System.out.println(image);
+    }
+
+    public Card(String cardID, String name, int rarity, String image, String pack) {
+        this(cardID, name, rarity, null);
+        this.pack = pack;
     }
 
     @Override
@@ -106,4 +112,12 @@ public class Card extends JPanel {
         return image;
     }
 
+    /**
+     * Get the pack of the card
+     * 
+     * @return pack of the card
+     */
+    public String getPack() {
+        return pack;
+    }
 }
