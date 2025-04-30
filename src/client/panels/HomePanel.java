@@ -187,7 +187,7 @@ public class HomePanel extends TCGPanel {
         System.out.println("openPack called with pack index: " + packIndex);
         try (MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT))) {
             System.out.println("Opening a pack...");
-            PackRequest packRequest = new PackRequest(username, "PackNamePlaceholder", 5);
+            PackRequest packRequest = new PackRequest(username, "Worlds Collide", 5);
             messageSocket.sendMessage(packRequest);
             Message response = messageSocket.getMessage();
             if (response instanceof PackResponse packResponse) {
