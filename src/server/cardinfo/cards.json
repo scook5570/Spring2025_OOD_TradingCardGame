@@ -68,5 +68,146 @@
         "rarity": 2,
         "imageLink": "src/server/cardinfo/images/doom.png",
         "pack": "Worlds Collide"
+    },
+    {
+        "cardID": "card011",
+        "name": "Cop Glasses",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/copglasses.png",
+        "pack": "Strong"
+    }
+    ,
+    {
+        "cardID": "card012",
+        "name": "Tongue Larry",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/tonguelarry.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card013",
+        "name": "Shiesty Larry",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/shiestylarry.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card014",
+        "name": "Ronnie Eat",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/ronnieeat.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card015",
+        "name": "RAAAAH",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/raaaah.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card016",
+        "name": "Lift Ronnie",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/liftronnie.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card017",
+        "name": "King Ronnie",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/King Ronnie.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card018",
+        "name": "Gamer Ronnie",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/gamerronnie.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card019",
+        "name": "Crying Larry",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/cryinglarry.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card020",
+        "name": "City Larry",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/citylarry.png",
+        "pack": "Strong"
+    },
+    {
+        "cardID": "card021",
+        "name": "Bojack",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/bojack.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card022",
+        "name": "Car",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/car.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card023",
+        "name": "Evariste Galois",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/evariste_galois.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card024",
+        "name": "Graph",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/graph.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card025",
+        "name": "Im Normal",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/im_normal.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card026",
+        "name": "Monke",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/monke.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card027",
+        "name": "Party Monke",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/Party_Monke.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card028",
+        "name": "Shak",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/shak.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card029",
+        "name": "Shame Car",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/shame_car.png",
+        "pack": "Jelly"
+    },
+    {
+        "cardID": "card030",
+        "name": "Snowman",
+        "rarity": 2,
+        "imageLink": "src/server/cardinfo/images/snowman.png",
+        "pack": "Jelly"
     }
 ]
