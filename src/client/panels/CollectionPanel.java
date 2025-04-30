@@ -1,6 +1,12 @@
 package client.panels;
 
 import java.awt.*;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.util.ArrayList;
+
+
 import javax.swing.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -11,16 +17,19 @@ import java.util.List;
 
 import client.frames.MainFrame;
 import client.utils.TCGUtils;
+
+import merrimackutil.json.types.JSONObject;
 import merrimackutil.json.types.JSONArray;
-import shared.Card;
-import shared.MessageSocket;
-import shared.messages.CollectionRequest;
-import shared.messages.CollectionResponse;
+import shared.*;
+import shared.messages.*;
 
 /**
  * CollectionPanel represents the screen where a user's card collection is displayed.
  */
 public class CollectionPanel extends TCGPanel {
+    private JPanel display;
+    private ArrayList<String> collection;
+    private GridBagConstraints gbcCards;
 
     private final boolean isTradeMode;
     private final String tradePartner;
@@ -36,10 +45,13 @@ public class CollectionPanel extends TCGPanel {
         this.tradePartner = tradePartner;
         setName("Collection");
 
-        List<Card> userCards = fetchUserCards(username);
+        List<Card> userCards = TCGUtils.fetchUserCards(username);
 
-        JPanel collectionPanel = new JPanel(new GridBagLayout());
-        collectionPanel.setBackground(Color.GRAY);
+        this.gbcCards = new GridBagConstraints();
+        this.gbcCards.insets = new Insets(3, 3, 3, 3);
+        
+        this.display = new JPanel(new GridBagLayout());
+        display.setBackground(Color.GRAY);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -54,7 +66,7 @@ public class CollectionPanel extends TCGPanel {
                     @Override
                     public void mouseClicked(MouseEvent e) {
                         selectedCard = card;
-                        highlightSelectedCard(collectionPanel, card);
+                        highlightSelectedCard(display, card);
 
                         // If initiating trade
                         if (tradePartner != null) {
@@ -81,10 +93,10 @@ public class CollectionPanel extends TCGPanel {
 
             gbc.gridx = i % columns;
             gbc.gridy = i / columns;
-            collectionPanel.add(card, gbc);
+            display.add(card, gbc);
         }
 
-        JScrollPane scrollPane = new JScrollPane(collectionPanel);
+        JScrollPane scrollPane = new JScrollPane(display);
         scrollPane.setBackground(Color.GRAY);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
@@ -129,29 +141,44 @@ public class CollectionPanel extends TCGPanel {
         return selectedCard != null ? selectedCard.getCardID() : null;
     }
 
-    private List<Card> fetchUserCards(String username) {
-        List<Card> cardList = new ArrayList<>();
-        try (MessageSocket ms = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT))) {
-            ms.sendMessage(new CollectionRequest(username));
-            var response = ms.getMessage();
+    private void loadCards() {
+        try {
+            System.out.println("Retrieving collection...");
+            MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT));
+            CollectionRequest collectionRequest = new CollectionRequest(username);
+            messageSocket.sendMessage(collectionRequest);
 
-            if (response instanceof CollectionResponse cr) {
-                JSONArray collection = cr.getCollection();
-                for (int i = 0; i < collection.size(); i++) {
-                    var obj = collection.getObject(i);
-                    String cardID = obj.getString("cardID");
-                    String name = obj.getString("name");
-                    double rarity = obj.getDouble("rarity");
-                    String image = obj.getString("imageLink");
-                    cardList.add(new Card(cardID, name, (int) rarity, image));
+            Message response = messageSocket.getMessage();
+            if (response instanceof CollectionResponse) {
+                CollectionResponse collectionResponse = (CollectionResponse) response;
+                JSONArray cards = collectionResponse.getCollection();
+                System.out.println("Your collection contains the following cards:");
+                for (int i = 0; i < cards.size(); i++) {
+                    JSONObject card = (JSONObject) cards.get(i);
+                    String cardId = card.getString("cardID");
+                    String name = card.getString("name");
+                    int rarity = card.getInt("rarity");
+                    String imageLink = card.getString("imageLink");
+
+                    if (!collection.contains(imageLink)) {
+                        collection.add(imageLink);
+                        this.gbcCards.gridy = Math.floorDiv(collection.size() - 1, 4);
+                        this.display.add(new Card(cardId, name, rarity, imageLink), this.gbcCards);
+                    }
                 }
+            } else {
+                System.err.println("Unexpected response type: " + response.getType());
             }
+            messageSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
-            SwingUtilities.invokeLater(() -> {
-                JOptionPane.showMessageDialog(this, "Failed to load collection.", "Error", JOptionPane.ERROR_MESSAGE);
-            });
         }
-        return cardList;
     }
+
+    public void refreshCollection() {
+        this.display.removeAll();
+        this.collection = new ArrayList<>();
+        this.loadCards();
+    }
+
 }

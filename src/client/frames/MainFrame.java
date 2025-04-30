@@ -14,29 +14,45 @@ import shared.MessageSocket;
 import shared.messages.*;
 
 public class MainFrame extends JFrame {
-    private final CardLayout cardLayout;
-    private final JPanel mainPanel;
-    private final String currentUser;
-    private final Rectangle screenBounds;
+    private CardLayout cardLayout; // Manages switching between different panels
+    private JPanel mainPanel;
+    public String currentUser;
+    public Rectangle rect; 
+    public HomePanel homePanel;
+    public CollectionPanel collectionPanel;
+
+    /**
+     * Constructor for MainFrame
+     * 
+     * @param username the username of the logged-in user
+     */
 
     public MainFrame(String username) {
         this.currentUser = username;
-        this.screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        this.rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 
         setTitle("Trading Card Game");
         setBackground(TCGUtils.BACKGROUND_COLOR);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setBounds(screenBounds);
+        setBounds(rect);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // Named panels (added once)
-        mainPanel.add(new HomePanel(this, currentUser), TCGUtils.HOME);
-        mainPanel.add(new CollectionPanel(this, currentUser), TCGUtils.COLLECTION);
+
+        homePanel = new HomePanel(this, this.currentUser);
+        collectionPanel = new CollectionPanel(this, this.currentUser);
+
+        // Add Home and Collection panels to the main panel with identifiers
+        mainPanel.add(homePanel, TCGUtils.HOME);
+        mainPanel.add(collectionPanel, TCGUtils.COLLECTION);
+
+
+
         mainPanel.add(new TradePanel(this, currentUser), TCGUtils.TRADE);
         mainPanel.add(new TradeStatusPanel(this, currentUser), "TradeStatus");
+
 
         setContentPane(mainPanel);
         showPanel(TCGUtils.HOME);
@@ -60,12 +76,19 @@ public class MainFrame extends JFrame {
         repaint();
     }
 
+
+
+    /**
+     * Returns the username of the current user
+     * 
+     * @return username
+     */
     public String getUsername() {
         return currentUser;
     }
 
     public Rectangle getRect() {
-        return screenBounds;
+        return rect;
     }
 
     public void sendTradeRequest(String recipient, String offeredCardId) {
