@@ -27,13 +27,12 @@ public class MenuButtons extends JPanel {
         setBackground(TCGUtils.BACKGROUND_COLOR);
 
         // Create "Gallery" button (collection panel)
-        JButton collectionButton = new JButton("Gallery");
+        JButton collectionButton = new JButton("Collection");
         collectionButton.setPreferredSize(new Dimension(100, 50));
         collectionButton.setFocusPainted(false); // Remove focus border around text
         // Switch to Collection panel
         collectionButton.addActionListener(e -> {
             this.parentFrame.collectionPanel.refreshCollection();
-            // System.out.println("r");
             this.parentFrame.showPanel(TCGUtils.COLLECTION);
         });
 

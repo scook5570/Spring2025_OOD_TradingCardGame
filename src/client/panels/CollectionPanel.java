@@ -45,10 +45,13 @@ public class CollectionPanel extends TCGPanel {
         this.tradePartner = tradePartner;
         setName("Collection");
 
-        List<Card> userCards = fetchUserCards(username);
+        List<Card> userCards = TCGUtils.fetchUserCards(username);
 
-        JPanel collectionPanel = new JPanel(new GridBagLayout());
-        collectionPanel.setBackground(Color.GRAY);
+        this.gbcCards = new GridBagConstraints();
+        this.gbcCards.insets = new Insets(3, 3, 3, 3);
+        
+        this.display = new JPanel(new GridBagLayout());
+        display.setBackground(Color.GRAY);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -63,7 +66,7 @@ public class CollectionPanel extends TCGPanel {
                     @Override
                     public void mouseClicked(MouseEvent e) {
                         selectedCard = card;
-                        highlightSelectedCard(collectionPanel, card);
+                        highlightSelectedCard(display, card);
 
                         // If initiating trade
                         if (tradePartner != null) {
@@ -90,10 +93,10 @@ public class CollectionPanel extends TCGPanel {
 
             gbc.gridx = i % columns;
             gbc.gridy = i / columns;
-            collectionPanel.add(card, gbc);
+            display.add(card, gbc);
         }
 
-        JScrollPane scrollPane = new JScrollPane(collectionPanel);
+        JScrollPane scrollPane = new JScrollPane(display);
         scrollPane.setBackground(Color.GRAY);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
@@ -136,17 +139,6 @@ public class CollectionPanel extends TCGPanel {
 
     public String getSelectedCardID() {
         return selectedCard != null ? selectedCard.getCardID() : null;
-    }
-
-    private List<Card> fetchUserCards(String username) {
-        List<Card> cardList = new ArrayList<>();
-        try (MessageSocket ms = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT))) {
-            ms.sendMessage(new CollectionRequest(username));
-            var response = ms.getMessage();
-        // Add the scroll pane to the main content area of the panel
-        addMainComponent(collectionScrollPane);
-
-        loadCards();
     }
 
     private void loadCards() {
