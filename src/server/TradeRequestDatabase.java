@@ -145,6 +145,8 @@ public class TradeRequestDatabase implements JSONSerializable {
             throw new InvalidObjectException("Trade request does not exist in the database");
         }
         tradeRequests.remove(key);
+
+        save();
     }
 
     /**

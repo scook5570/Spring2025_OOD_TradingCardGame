@@ -156,22 +156,51 @@ public class Client {
                             System.out.println("Invalid choice.");
                         } else {
                             String recipient = users.getString(userChoice - 1);
-                            System.out.print("Enter the card ID you want to offer: ");
-                            String offerCardID = scanner.nextLine();
-
+                            System.out.println("Retrieving your collection to select a card...");
                             MessageSocket messageSocket2 = new MessageSocket(new Socket(serverAddress, port));
-                            TradeRequest tradeRequest = new TradeRequest(username, recipient, offerCardID);
-                            messageSocket2.sendMessage(tradeRequest);
-                            System.out.println("Trade request sent to " + recipient + ".");
+                            CollectionRequest collectionRequest = new CollectionRequest(username);
+                            messageSocket2.sendMessage(collectionRequest);
 
-                            Message tradeResponse = messageSocket2.getMessage();
+                            Message collectionResponse = messageSocket2.getMessage();
                             messageSocket2.close();
-                            if (tradeResponse instanceof ServerTradeStatus) {
-                                ServerTradeStatus tradeStatus = (ServerTradeStatus) tradeResponse;
-                                System.out.println("Trade request status: " + tradeStatus.getMessage());
+                            if (collectionResponse instanceof CollectionResponse) {
+                                CollectionResponse collectionResp = (CollectionResponse) collectionResponse;
+                                JSONArray cards = collectionResp.getCollection();
+                                System.out.println("Your collection contains the following cards:");
+                                for (int i = 0; i < cards.size(); i++) {
+                                    JSONObject card = (JSONObject) cards.get(i);
+                                    System.out.println((i + 1) + ". Card ID: " + card.getString("cardID") +
+                                            " | Name: " + card.getString("name") +
+                                            " | Rarity: " + card.getInt("rarity"));
+                                }
+
+                                System.out.print("Select a card to offer (enter number): ");
+                                int cardChoice = scanner.nextInt();
+                                scanner.nextLine(); // Consume the newline character
+
+                                if (cardChoice < 1 || cardChoice > cards.size()) {
+                                    System.out.println("Invalid choice.");
+                                } else {
+                                    JSONObject selectedCard = (JSONObject) cards.get(cardChoice - 1);
+                                    String offerCardID = selectedCard.getString("cardID");
+
+                                    TradeRequest tradeRequest = new TradeRequest(username, recipient, offerCardID);
+                                    MessageSocket messageSocket3 = new MessageSocket(new Socket(serverAddress, port));
+                                    messageSocket3.sendMessage(tradeRequest);
+                                    System.out.println("Trade request sent to " + recipient + ".");
+
+                                    Message tradeResponse = messageSocket3.getMessage();
+                                    if (tradeResponse instanceof ServerTradeStatus) {
+                                        ServerTradeStatus tradeStatus = (ServerTradeStatus) tradeResponse;
+                                        System.out.println("Trade request status: " + tradeStatus.getMessage());
+                                    } else {
+                                        System.err.println("Unexpected response type: " + tradeResponse.getType());
+                                    }
+                                }
                             } else {
-                                System.err.println("Unexpected response type: " + tradeResponse.getType());
+                                System.err.println("Unexpected response type: " + collectionResponse.getType());
                             }
+                            messageSocket2.close();
                         }
                     } else {
                         System.err.println("Unexpected response type: " + response.getType());
@@ -248,20 +277,50 @@ public class Client {
 
                             if (tradeType.equals("request") && recipientID.equals(username)) {
                                 // You're the recipient, so you can respond to this trade
-                                System.out.print("Enter the card ID you want to offer in response: ");
-                                String responseInputCardID = scanner.nextLine();
-
-                                TradeResponse tradeResponse = new TradeResponse(true, tradeKey, responseInputCardID);
+                                System.out.println("Retrieving your collection to select a card...");
                                 MessageSocket messageSocket3 = new MessageSocket(new Socket(serverAddress, port));
-                                messageSocket3.sendMessage(tradeResponse);
+                                CollectionRequest collectionRequest = new CollectionRequest(username);
+                                messageSocket3.sendMessage(collectionRequest);
 
-                                Message tradeStatusResponse = messageSocket3.getMessage();
-                                if (tradeStatusResponse instanceof ServerTradeStatus) {
-                                    ServerTradeStatus tradeStatus = (ServerTradeStatus) tradeStatusResponse;
-                                    System.out.println("Trade response status: " + tradeStatus.getMessage());
+                                Message collectionResponse = messageSocket3.getMessage();
+                                messageSocket3.close();
+                                if (collectionResponse instanceof CollectionResponse) {
+                                    CollectionResponse collectionResp = (CollectionResponse) collectionResponse;
+                                    JSONArray cards = collectionResp.getCollection();
+                                    System.out.println("Your collection contains the following cards:");
+                                    for (int i = 0; i < cards.size(); i++) {
+                                        JSONObject card = (JSONObject) cards.get(i);
+                                        System.out.println((i + 1) + ". Card ID: " + card.getString("cardID") +
+                                                " | Name: " + card.getString("name") +
+                                                " | Rarity: " + card.getInt("rarity"));
+                                    }
+
+                                    System.out.print("Select a card to offer in response (enter number): ");
+                                    int cardChoice = scanner.nextInt();
+                                    scanner.nextLine(); // Consume the newline character
+
+                                    if (cardChoice < 1 || cardChoice > cards.size()) {
+                                        System.out.println("Invalid choice.");
+                                    } else {
+                                        JSONObject selectedCard = (JSONObject) cards.get(cardChoice - 1);
+                                        String responseInputCardID = selectedCard.getString("cardID");
+
+                                        TradeResponse tradeResponse = new TradeResponse(true, tradeKey, responseInputCardID);
+                                        MessageSocket messageSocket4 = new MessageSocket(new Socket(serverAddress, port));
+                                        messageSocket4.sendMessage(tradeResponse);
+
+                                        Message tradeStatusResponse = messageSocket4.getMessage();
+                                        if (tradeStatusResponse instanceof ServerTradeStatus) {
+                                            ServerTradeStatus tradeStatus = (ServerTradeStatus) tradeStatusResponse;
+                                            System.out.println("Trade response status: " + tradeStatus.getMessage());
+                                        } else {
+                                            System.err.println("Unexpected response type: " + tradeStatusResponse.getType());
+                                        }
+                                    }
                                 } else {
-                                    System.err.println("Unexpected response type: " + tradeStatusResponse.getType());
+                                    System.err.println("Unexpected response type: " + collectionResponse.getType());
                                 }
+                                messageSocket3.close();
 
                             } else if (tradeType.equals("response") && requesterID.equals(username)) {
                                 // You're the original requester confirming a response

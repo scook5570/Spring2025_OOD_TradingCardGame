@@ -238,6 +238,9 @@ public class ServerConnectionHandler {
                 userCardsDatabase.addCard(recipientID, offerCard.getCardID(), offerCard.getName(),
                         offerCard.getRarity(), offerCard.getImage());
 
+                // remove trade request from database
+                tradeRequestDatabase.removeTradeRequest(tradeConfirmation.getTradeKey());
+
             } catch (InvalidObjectException e) {
                 System.out.println("Error removing trade request from database: " + e.getMessage());
                 e.printStackTrace();
