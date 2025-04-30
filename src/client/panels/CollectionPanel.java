@@ -19,6 +19,7 @@ import shared.messages.*;
  * displayed.
  */
 public class CollectionPanel extends TCGPanel {
+    private JPanel display;
     private ArrayList<String> collection;
     private GridBagConstraints gbcCards;
 
@@ -35,12 +36,12 @@ public class CollectionPanel extends TCGPanel {
         this.gbcCards.insets = new Insets(3, 3, 3, 3);
 
         // Create a panel where the collection cards will be displayed
-        JPanel collectionPanel = new JPanel();
-        collectionPanel.setBackground(Color.GRAY);
-        collectionPanel.setLayout(new GridBagLayout());
+        this.display = new JPanel();
+        this.display.setBackground(Color.GRAY);
+        this.display.setLayout(new GridBagLayout());
 
         // Wrap the collection panel in a scroll pane for scrolling functionality
-        JScrollPane collectionScrollPane = new JScrollPane(collectionPanel);
+        JScrollPane collectionScrollPane = new JScrollPane(this.display);
         collectionScrollPane.setBackground(Color.GRAY);
 
         // Disable horizontal scrolling to keep the layout clean
@@ -49,6 +50,13 @@ public class CollectionPanel extends TCGPanel {
         // Increase vertical scroll speed for smoother scrolling
         collectionScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
+        // Add the scroll pane to the main content area of the panel
+        addMainComponent(collectionScrollPane);
+
+        loadCards();
+    }
+
+    private void loadCards() {
         try {
             System.out.println("Retrieving collection...");
             MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT));
@@ -60,8 +68,7 @@ public class CollectionPanel extends TCGPanel {
                 CollectionResponse collectionResponse = (CollectionResponse) response;
                 JSONArray cards = collectionResponse.getCollection();
                 System.out.println("Your collection contains the following cards:");
-                // for (int i = 0; i < cards.size(); i++) {
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < cards.size(); i++) {
                     JSONObject card = (JSONObject) cards.get(i);
                     String cardId = card.getString("cardID");
                     String name = card.getString("name");
@@ -70,14 +77,9 @@ public class CollectionPanel extends TCGPanel {
 
                     if (!collection.contains(imageLink)) {
                         collection.add(imageLink);
-                        this.gbcCards.gridy = Math.floorDiv(i, 4);
-                        collectionPanel.add(new Card(cardId, name, rarity, imageLink), this.gbcCards);
+                        this.gbcCards.gridy = Math.floorDiv(collection.size() - 1, 4);
+                        this.display.add(new Card(cardId, name, rarity, imageLink), this.gbcCards);
                     }
-
-                    // System.out.println("Card ID: " + card.getString("cardID"));
-                    // System.out.println("Name: " + card.getString("name"));
-                    // System.out.println("Rarity: " + card.getInt("rarity"));
-                    // System.out.println("Image Link: " + card.getString("imageLink"));
                 }
             } else {
                 System.err.println("Unexpected response type: " + response.getType());
@@ -86,8 +88,12 @@ public class CollectionPanel extends TCGPanel {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        // Add the scroll pane to the main content area of the panel
-        addMainComponent(collectionScrollPane);
     }
+
+    public void refreshCollection() {
+        this.display.removeAll();
+        this.collection = new ArrayList<>();
+        this.loadCards();
+    }
+
 }

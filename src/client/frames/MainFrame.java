@@ -17,6 +17,8 @@ public class MainFrame extends JFrame {
     private JPanel mainPanel;
     public String username;
     public Rectangle rect; 
+    public HomePanel homePanel;
+    public CollectionPanel collectionPanel;
 
     /**
      * Constructor for MainFrame
@@ -54,9 +56,12 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
+        homePanel = new HomePanel(this, this.username);
+        collectionPanel = new CollectionPanel(this, this.username);
+
         // Add Home and Collection panels to the main panel with identifiers
-        mainPanel.add(new HomePanel(this, this.username), TCGUtils.HOME);
-        mainPanel.add(new CollectionPanel(this, this.username), TCGUtils.COLLECTION);
+        mainPanel.add(homePanel, TCGUtils.HOME);
+        mainPanel.add(collectionPanel, TCGUtils.COLLECTION);
 
         // Add the main panel to the frame
         add(mainPanel);
@@ -75,6 +80,7 @@ public class MainFrame extends JFrame {
     public void showPanel(String panelName) {
         cardLayout.show(mainPanel, panelName);
     }
+
 
     /**
      * Returns the username of the current user

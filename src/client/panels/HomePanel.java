@@ -22,6 +22,7 @@ import shared.messages.*;
 public class HomePanel extends TCGPanel {
 
     private JPanel[] packPanels;
+    private MyMouseListener[] mouseListeners;
     private JPanel carouselPanel;
     private int currentIndex = 1;
 
@@ -34,7 +35,8 @@ public class HomePanel extends TCGPanel {
     public HomePanel(MainFrame parentFrame, String username) {
         super(parentFrame, username);
 
-        // Create the card carousel panel and add the entire centerWrapper to the main panel
+        // Create the card carousel panel and add the entire centerWrapper to the main
+        // panel
         addMainComponent(createCarouselPanel(), true);
     }
 
@@ -46,6 +48,7 @@ public class HomePanel extends TCGPanel {
     private JPanel createCarouselPanel() {
         // Create the array of panels for the carousel
         packPanels = new JPanel[3];
+        mouseListeners = new MyMouseListener[3];
         Dimension centerPackSize = new Dimension(200, 300);
         Dimension sidePackSize = new Dimension(160, 240);
 
@@ -125,6 +128,9 @@ public class HomePanel extends TCGPanel {
      * A method to render the carousel with specific layout
      */
     private void renderCarousel() {
+        for (int i = 0; i < this.packPanels.length; i++) {
+            this.packPanels[i].removeMouseListener(this.mouseListeners[i]);
+        }
         carouselPanel.removeAll();
 
         Dimension centerPackSize = new Dimension(250, 375);
@@ -152,17 +158,8 @@ public class HomePanel extends TCGPanel {
         JPanel packPanel = packPanels[index];
         packPanel.setPreferredSize(size);
         // Each packPanel basically works as a button for the user to press
-        packPanel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Prompt user to confirm opening the pack
-                int response = JOptionPane.showConfirmDialog(parentFrame, "Would you like to open this pack?",
-                        "Open Pack", JOptionPane.YES_NO_OPTION);
-                if (response == JOptionPane.YES_OPTION) {
-                    openPack(index);
-                }
-            }
-        });
+        this.mouseListeners[index] = new MyMouseListener(this, index);
+        packPanel.addMouseListener(this.mouseListeners[index]);
         return packPanel;
     }
 
@@ -171,45 +168,27 @@ public class HomePanel extends TCGPanel {
      * 
      * @param packIndex The current index of the selected pack
      */
-    private void openPack(int packIndex) {
+    public void openPack(int packIndex) {
         System.out.println("openPack called with pack index: " + packIndex);
-
         try (MessageSocket messageSocket = new MessageSocket(new Socket(TCGUtils.SERVERADDRESS, TCGUtils.PORT))) {
             System.out.println("Opening a pack...");
-
-            System.out.println("Connected to server at " + TCGUtils.SERVERADDRESS + ":" + TCGUtils.PORT);
-
             PackRequest packRequest = new PackRequest(username, "PackNamePlaceholder", 5);
             messageSocket.sendMessage(packRequest);
-            System.out.println("Pack request sent to server");
-
             Message response = messageSocket.getMessage();
-            System.out.println("Received response: " + response);
-
             if (response instanceof PackResponse packResponse) {
                 JSONArray cards = packResponse.getCards();
                 System.out.println("You opened a pack with the following cards:");
-
                 // Create an array of Cards
                 Card[] openedCards = new Card[cards.size()];
-
                 for (int i = 0; i < cards.size(); i++) {
                     JSONObject card = (JSONObject) cards.get(i);
                     String cardID = card.getString("cardID");
                     String name = card.getString("name");
                     int rarity = card.getInt("rarity");
                     String image = card.getString("imageLink");
-
-                    System.out.println("Card ID: " + cardID);
-                    System.out.println("Name: " + name);
-                    System.out.println("Rarity: " + rarity);
-                    System.out.println("Image Link: " + image);
-
                     openedCards[i] = new Card(cardID, name, rarity, image);
                 }
-
-                SwingUtilities.invokeLater(() -> new PackOpeningWindow(openedCards));
-
+                new PackOpeningWindow(openedCards);
             } else {
                 System.err.println("Unexpected response type: " + response.getType());
             }
@@ -248,5 +227,25 @@ public class HomePanel extends TCGPanel {
         container.setLayout(new GridBagLayout());
         container.add(content);
         return container;
+    }
+}
+
+class MyMouseListener extends MouseAdapter {
+    private HomePanel parentPanel;
+    private int index;
+
+    public MyMouseListener(HomePanel parentPanel, int index) {
+        this.parentPanel = parentPanel;
+        this.index = index;
+    }
+
+    // Each packPanel basically works as a button for the user to press
+    public void mouseClicked(MouseEvent e) {
+        // Prompt user to confirm opening the pack
+        int response = JOptionPane.showConfirmDialog(this.parentPanel.parentFrame, "Would you like to open this pack?",
+                "Open Pack", JOptionPane.YES_NO_OPTION);
+        if (response == JOptionPane.YES_OPTION) {
+            this.parentPanel.openPack(index);
+        }
     }
 }
