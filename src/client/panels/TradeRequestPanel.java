@@ -1,70 +1,144 @@
 package client.panels;
 
 import client.frames.MainFrame;
+import client.utils.TCGUtils;
 import shared.Card;
+import shared.MessageSocket;
+import shared.messages.*;
+
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.net.Socket;
 
-/**
- * TradeRequestPanel represents a panel that prompts the user with a trade request.
- * It shows who is requesting the trade, the proposed card, and provides Accept/Deny buttons.
- */
+import static client.utils.TCGUtils.PORT;
+import static client.utils.TCGUtils.SERVERADDRESS;
+
 public class TradeRequestPanel extends JPanel {
 
-    public TradeRequestPanel(MainFrame parentFrame, String username, Card proposedCard) {
+    private final String tradeKey;
 
-        setLayout(new GridBagLayout());
-        setBackground(Color.WHITE);
+    public TradeRequestPanel(
+            MainFrame parentFrame,
+            String fromUser,
+            Card proposedCard,
+            String tradeKey,
+            Runnable onDecision,
+            boolean isListItem
+    ) {
+        this.tradeKey = tradeKey;
+        setName("TradeRequest"); // Important for reloadPanel cleanup
 
-        // Set up constraints for layout
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.CENTER;
+        if (isListItem) {
+            // List mode (compact card view)
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setBackground(Color.GRAY);
+            setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            setMaximumSize(new Dimension(300, 80));
 
-        // Create and add the label that shows the trade requester
-        JLabel usernameLabel = new JLabel(username + " wants to trade:");
-        usernameLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        add(usernameLabel, gbc);  // Add to panel at position (0, 0)
+            JLabel label = new JLabel(fromUser + " offers " + proposedCard.getCardID());
+            label.setAlignmentX(Component.CENTER_ALIGNMENT);
+            add(label);
 
-        // Create an image label using the proposed card's image
-        ImageIcon cardImage = new ImageIcon(proposedCard.getImage());
-        JLabel cardLabel = new JLabel(cardImage);
+            Card thumb = proposedCard;
+            thumb.setAlignmentX(Component.CENTER_ALIGNMENT);
+            add(thumb);
 
-        // Move card image label to the next row (position 0, 1)
-        gbc.gridy = 1;
-        add(cardLabel, gbc);
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    TradeRequestPanel fullView = new TradeRequestPanel(
+                            parentFrame, fromUser, proposedCard, tradeKey, onDecision, false
+                    );
+                    fullView.setName("TradeRequest");
+                    parentFrame.showDynamicPanel(fullView, "TradeRequest");
+                }
+            });
 
-        // Create a panel to hold the Accept and Deny buttons
-        JPanel buttonPanel = new JPanel();
-        JButton acceptButton = new JButton("Accept");
-        JButton denyButton = new JButton("Deny");
+        } else {
+            // Fullscreen response view
+            setLayout(new BorderLayout());
+            setBackground(Color.WHITE);
 
-        buttonPanel.add(acceptButton);   // Add Accept button to button panel
-        buttonPanel.add(denyButton);     // Add Deny button to button panel
+            Card realCard = TCGUtils.fetchCardByID(fromUser, proposedCard.getCardID());
 
-        // Move buttons to the next row (position 0, 2)
-        gbc.gridy = 2;
-        add(buttonPanel, gbc);
+            JPanel center = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.anchor = GridBagConstraints.CENTER;
 
-        // Set up action listener for the Accept button
-        acceptButton.addActionListener(e -> {
-            // Show confirmation popup
-            JOptionPane.showMessageDialog(this, "Trade Accepted!");
+            JLabel lbl = new JLabel(fromUser + " offers: " + realCard.getName() + " (Rarity " + realCard.getRarity() + ")");
+            lbl.setFont(new Font("Arial", Font.BOLD, 16));
+            center.add(lbl, gbc);
 
-            // Switch to the trade panel (placeholder for further trade logic)
-            TradePanel tradePanel = new TradePanel(parentFrame, username);
-            parentFrame.setPanel(tradePanel);
-        });
+            gbc.gridy = 1;
+            ImageIcon icon = new ImageIcon(realCard.getImage());
+            center.add(new JLabel(icon), gbc);
 
-        // Set up action listener for the Deny button
-        denyButton.addActionListener(e -> {
-            // Show rejection popup
-            JOptionPane.showMessageDialog(this, "Trade Denied!");
+            gbc.gridy = 2;
+            JPanel buttons = new JPanel();
+            JButton accept = new JButton("Accept");
+            JButton deny = new JButton("Deny");
+            buttons.add(accept);
+            buttons.add(deny);
+            center.add(buttons, gbc);
 
-            // Return to the trade panel (could be enhanced to remove pending trade)
-            TradePanel tradePanel = new TradePanel(parentFrame, username);
-            parentFrame.setPanel(tradePanel);
-        });
+            add(center, BorderLayout.CENTER);
+
+            // Back button
+            JButton backButton = new JButton("Back");
+            backButton.addActionListener(e -> parentFrame.reloadPanel("TradeStatus"));
+            JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            top.add(backButton);
+            add(top, BorderLayout.NORTH);
+
+            // Deny trade
+            deny.addActionListener(e -> {
+                sendTradeResponse(null);
+                SwingUtilities.invokeLater(() -> parentFrame.reloadPanel("TradeStatus"));
+            });
+
+            // Accept trade
+            accept.addActionListener(e -> {
+                CollectionPanel collectionPanel = new CollectionPanel(parentFrame, parentFrame.getUsername(), true, null);
+                int result = JOptionPane.showConfirmDialog(
+                        this,
+                        collectionPanel,
+                        "Select a card to trade back",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE
+                );
+
+                String selectedCardID = collectionPanel.getSelectedCardID();
+                if (result == JOptionPane.OK_OPTION && selectedCardID != null) {
+                    sendTradeResponse(selectedCardID);
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, "Trade response sent.");
+                        parentFrame.reloadPanel("TradeStatus");
+                        parentFrame.reloadPanel(TCGUtils.TRADE);
+                    });
+                } else {
+                    JOptionPane.showMessageDialog(this, "You must select a card to respond with.");
+                }
+            });
+
+        }
+    }
+
+    private void sendTradeResponse(String responseCardID) {
+        try (MessageSocket ms = new MessageSocket(new Socket(SERVERADDRESS, PORT))) {
+            ms.sendMessage(new TradeResponse(true, tradeKey, responseCardID));
+            var msg = ms.getMessage();
+            if (msg instanceof ServerTradeStatus sts) {
+                JOptionPane.showMessageDialog(this,
+                        sts.getMessage(),
+                        sts.getStatus() ? "Success" : "Error",
+                        sts.getStatus() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Trade failed due to server error.");
+        }
     }
 }

@@ -88,11 +88,12 @@ public class TradeStatusPanel extends TCGPanel {
                         confirmBtn.addActionListener(e -> {
                             int choice = JOptionPane.showConfirmDialog(this, "Confirm this trade?",
                                     "Trade Confirmation", JOptionPane.YES_NO_OPTION);
+
                             if (choice == JOptionPane.YES_OPTION) {
                                 boolean success = sendConfirmation(tradeKey);
                                 if (success) {
+                                    JOptionPane.showMessageDialog(this, "Trade completed!");
                                     SwingUtilities.invokeLater(() -> {
-                                        JOptionPane.showMessageDialog(this, "Trade completed!");
                                         parentFrame.reloadPanel("TradeStatus");
                                         parentFrame.reloadPanel(TCGUtils.TRADE);
                                     });
