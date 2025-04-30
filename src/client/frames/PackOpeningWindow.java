@@ -13,7 +13,10 @@ public class PackOpeningWindow extends JFrame {
     public PackOpeningWindow(Card[] openedCards) {
         setTitle("You Opened a Pack!");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(1200, 600);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        Rectangle rect = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+
+        setBounds(rect);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
