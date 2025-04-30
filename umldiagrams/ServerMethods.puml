@@ -1,0 +1,83 @@
+@startuml
+
+package server {
+    class Server {
+        +main(String[]): void
+    }
+
+    class ServerConnectionHandler {
+        +start(int, UserCredentials, UserCardsDatabase, TradeRequestDatabase): void
+        +handleLogin(UserCredRequest): boolean
+        +handleRegistration(UserCredRequest): boolean
+        +handlePackRequest(PackRequest): JSONArray
+        +handleCollectionRequest(CollectionRequest): JSONArray
+        +handleTradeRequest(TradeRequest): void
+        +handleTradeResponse(TradeResponse): void
+        +handleViewTradesRequest(ViewTradesRequest): JSONArray
+        +handleTradeConfirmation(TradeConfirmation): void
+        +handleUserListRequest(UserListRequest): JSONArray
+        +addClient(String, ClientHandler): void
+        +removeClient(String): void
+    }
+
+    class ClientHandler {
+        +run(): void
+        +sendMessage(Message): void
+    }
+
+    class UserCredentials {
+        +addUser(String, String): void
+        +removeUser(String): void
+        +checkUser(String): boolean
+        +checkPassword(String, String): boolean
+        +deserialize(JSONType): void
+        +toJSONType(): JSONType
+        +save(): void
+    }
+
+    class UserCardsDatabase {
+        +addUser(String): void
+        +addCards(String, JSONArray): void
+        +removeUser(String): void
+        +removeCard(String, String): void
+        +getUserCards(String): JSONArray
+        +addCard(String, String, String, int, String): void
+        +getAllUsers(): JSONArray
+        +deserialize(JSONType): void
+        +toJSONType(): JSONType
+        +save(): void
+    }
+
+    class TradeRequestDatabase {
+        +addTradeRequest(String, String, String, String): void
+        +getTradeRequests(String): JSONArray
+        +getTradeResponses(String): JSONArray
+        +getTradeRequest(String): JSONArray
+        +removeTradeRequest(String): void
+        +updateTradeRequest(String, String): void
+        +deserialize(JSONType): void
+        +toJSONType(): JSONType
+        +save(): void
+    }
+}
+
+package shared.messages {
+    class Message {
+        +getType(): String
+        +toJSONType(): JSONObject
+        +deserialize(JSONType): void
+    }
+}
+
+' Relationships
+Server --> ServerConnectionHandler
+ServerConnectionHandler --> ClientHandler
+ServerConnectionHandler --> UserCredentials
+ServerConnectionHandler --> UserCardsDatabase
+ServerConnectionHandler --> TradeRequestDatabase
+ClientHandler --> Message
+UserCredentials --> JSONType
+UserCardsDatabase --> JSONType
+TradeRequestDatabase --> JSONType
+
+@enduml
