@@ -1,4 +1,4 @@
-<project name="TradingCardGame" default="run" basedir=".">
+<project name="TradingCardGame" default="dist" basedir=".">
     <description>
         Builds the Trading Card Game project.
     </description>
@@ -43,11 +43,12 @@
         </jar>
     </target>
 
-    <target name="run" depends="dist" description="Run the server and the app">
-        <!-- Run the server in a different JVM (fork) without blocking this one (spawn)-->
+    <!-- Depricated: caused the server to run in the background indefinately-->
+    <!-- <target name="run" depends="dist" description="Run the server and the app">
+        Run the server in a different JVM (fork) without blocking this one (spawn)
         <java jar="${dist}/server.jar" fork="true" spawn="true" />
         <java jar="${dist}/main.jar" fork="true" />
-    </target>
+    </target> -->
 
     <target name="clean" description="Clean up build and dist directories">
         <delete dir="${build}"/>

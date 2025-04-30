@@ -8,6 +8,11 @@ import java.awt.*;
  */
 public class TCGUtils {
 
+
+    public static final String SERVERADDRESS = "localhost";
+
+    public static final int PORT = 5000;
+
     /**
      * General background color used throughout the application.
      * Currently set to white (RGB: 255, 255, 255).
